@@ -4,6 +4,7 @@ import express from "express";
 import connectDB from "./config/db.js";
 import userRoutes from "./routes/authRoute.js";
 import companyRoutes from "./routes/companyRoutes.js";
+import candidateRoutes from "./routes/candidateRoutes.js";
 
 dotenv.config();
 connectDB();
@@ -14,7 +15,8 @@ const app = express();
 app.use(express.json());
 
 app.use(cors());
-
+app.use('/uploads', express.static('uploads')); // serve resume files
+app.use('/api/v1/candidate',candidateRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/company', companyRoutes);
 

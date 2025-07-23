@@ -1,58 +1,44 @@
-import React, { useState } from 'react';
-
-const dummyCandidates = [
-  {
-    id: 1,
-    name: 'Ravi Sharma',
-    email: 'ravi@example.com',
-    phone: '9876543210',
-    position: 'Frontend Developer',
-    experience: '2 Years',
-    status: 'Shortlisted',
-  },
-  {
-    id: 2,
-    name: 'Priya Verma',
-    email: 'priya@example.com',
-    phone: '9998887776',
-    position: 'Backend Developer',
-    experience: '3 Years',
-    status: 'Interviewed',
-  },
-  {
-    id: 3,
-    name: 'Amit Singh',
-    email: 'amit@example.com',
-    phone: '8887776665',
-    position: 'Full Stack Developer',
-    experience: '4 Years',
-    status: 'Rejected',
-  },
-  {
-    id: 4,
-    name: 'Neha Patel',
-    email: 'neha@example.com',
-    phone: '7776665554',
-    position: 'UI/UX Designer',
-    experience: '1.5 Years',
-    status: 'Hired',
-  },
-];
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 
 const statusColor = {
-  Shortlisted: 'bg-yellow-100 text-yellow-800',
-  Interviewed: 'bg-blue-100 text-blue-800',
-  Hired: 'bg-green-100 text-green-800',
-  Rejected: 'bg-red-100 text-red-800',
+  Shortlisted: "bg-yellow-100 text-yellow-800",
+  Interviewed: "bg-blue-100 text-blue-800",
+  Hired: "bg-green-100 text-green-800",
+  Rejected: "bg-red-100 text-red-800",
 };
 
 export default function CandidateTable() {
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
+  const [candidates, setCandidates] = useState([]);
+  const [filteredCandidates, setFilteredCandidates] = useState([]);
 
-  const filteredCandidates = dummyCandidates.filter((candidate) =>
-    candidate.name.toLowerCase().includes(search.toLowerCase()) ||
-    candidate.position.toLowerCase().includes(search.toLowerCase())
-  );
+  // Fetch candidates from API on mount
+  useEffect(() => {
+    const fetchCandidates = async () => {
+      try {
+            const user = JSON.parse(localStorage.getItem("auth")); // Get user from localStorage
+        const userId = user?.user?._id;
+        const res = await axios.get(`/api/v1/candidate/get/${userId}`);
+        console.log("object", res);
+        setCandidates(res.data);
+        setFilteredCandidates(res.data);
+      } catch (err) {
+        console.error("Error fetching candidates:", err);
+      }
+    };
+
+    fetchCandidates();
+  }, []);
+
+  useEffect(() => {
+    const result = candidates.filter(
+      (candidate) =>
+        candidate?.fullName?.toLowerCase().includes(search.toLowerCase()) ||
+        candidate?.position?.toLowerCase().includes(search.toLowerCase())
+    );
+    setFilteredCandidates(result);
+  }, [search, candidates]);
 
   return (
     <div className="p-6 bg-white shadow-lg rounded-xl">
@@ -75,29 +61,42 @@ export default function CandidateTable() {
               <th className="px-4 py-3">Email</th>
               <th className="px-4 py-3">Phone</th>
               <th className="px-4 py-3">Position</th>
+              <th className="">Skill</th>
               <th className="px-4 py-3">Experience</th>
-              <th className="px-4 py-3">Status</th>
+
+              <th className="px-4 py-3">Resume</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 text-sm">
             {filteredCandidates.length === 0 ? (
               <tr>
-                <td colSpan="6" className="text-center py-4 text-gray-500">
+                <td colSpan="7" className="text-center py-4 text-gray-500">
                   No candidates found.
                 </td>
               </tr>
             ) : (
               filteredCandidates.map((candidate) => (
-                <tr key={candidate.id} className="hover:bg-gray-50 transition">
-                  <td className="px-4 py-3">{candidate.name}</td>
+                <tr key={candidate._id} className="hover:bg-gray-50 transition">
+                  <td className="px-4 py-3">{candidate.fullName}</td>
                   <td className="px-4 py-3">{candidate.email}</td>
                   <td className="px-4 py-3">{candidate.phone}</td>
                   <td className="px-4 py-3">{candidate.position}</td>
+                  <td className=" bg-white"><textarea className="w-full" name="" id="">{candidate.skills}</textarea></td>
                   <td className="px-4 py-3">{candidate.experience}</td>
+
                   <td className="px-4 py-3">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusColor[candidate.status]}`}>
-                      {candidate.status}
-                    </span>
+                    {candidate.resume ? (
+                      <a
+                        href={`http://localhost:5000/${candidate.resume}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 underline"
+                      >
+                        View Resume
+                      </a>
+                    ) : (
+                      <span className="text-gray-400">No Resume</span>
+                    )}
                   </td>
                 </tr>
               ))
@@ -105,6 +104,6 @@ export default function CandidateTable() {
           </tbody>
         </table>
       </div>
-    </div>
-  );
+    </div>
+  );
 }

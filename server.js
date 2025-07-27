@@ -28,7 +28,7 @@ app.use('/api/v1/interview', interviewRoutes);
 app.use("/api/v1/event", eventRoutes);
 app.use("/api/v1/payment", paymentRoutes);
 app.get('/', (req, res) => {
-  res.send('API is running...');
+  res.send('Task Manager API is working ✅');
 });
 
 const PORT = process.env.PORT || 5000;

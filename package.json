@@ -4,11 +4,12 @@
   "description": "task manager",
   "main": "server.js",
   "type": "module",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js",
-      "build": "vite build"
-  },
+ "scripts": {
+  "test": "echo \"Error: no test specified\" && exit 1",
+  "start": "node server.js",
+  "build": "echo 'No build step needed'"
+}
+,
   "author": "",
   "license": "ISC",
   "dependencies": {

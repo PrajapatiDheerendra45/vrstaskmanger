@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
-const AssignTask = ({ staffList = [], onAssignTask }) => {
+const AssignTask = () => {
   const [task, setTask] = useState({
     staffId: '',
     title: '',
@@ -9,19 +10,53 @@ const AssignTask = ({ staffList = [], onAssignTask }) => {
     priority: 'Medium',
   });
 
+  const [staffList, setStaffList] = useState([]);
+
+  // Fetch staff list from API
+  useEffect(() => {
+    const fetchStaff = async () => {
+      try {
+        const res = await axios.get("/api/v1/users/getusers");
+     
+        setStaffList(res.data.users); // assuming res.data is the array
+      } catch (error) {
+        console.error("Error fetching staff:", error);
+      }
+    };
+    fetchStaff();
+  }, []);
+
+  // Handle input change
   const handleChange = (e) => {
     const { name, value } = e.target;
     setTask((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  // Handle form submit
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!task.staffId || !task.title || !task.deadline) {
       alert("Please fill all required fields");
       return;
     }
-    onAssignTask(task); // Send to parent or backend
-    setTask({ staffId: '', title: '', description: '', deadline: '', priority: 'Medium' });
+
+    try {
+      const res = await axios.post("/api/v1/task/create", task);
+      alert("Task Assigned Successfully!");
+      console.log(res.data);
+      // Reset form
+      setTask({
+        staffId: '',
+        title: '',
+        description: '',
+        deadline: '',
+        priority: 'Medium',
+      });
+    } catch (err) {
+      console.error("Error assigning task:", err);
+      alert("Failed to assign task.");
+    }
   };
 
   return (
@@ -34,13 +69,13 @@ const AssignTask = ({ staffList = [], onAssignTask }) => {
             name="staffId"
             value={task.staffId}
             onChange={handleChange}
-            className="w-full mt-1 border rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full mt-1 border rounded-md p-2"
             required
           >
             <option value="">Select Staff</option>
             {staffList.map((staff) => (
-              <option key={staff.id} value={staff.id}>
-                {staff.name}
+              <option key={staff._id} value={staff._id}>
+                {staff.name} 
               </option>
             ))}
           </select>
@@ -100,7 +135,7 @@ const AssignTask = ({ staffList = [], onAssignTask }) => {
 
         <button
           type="submit"
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md shadow-sm"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md"
         >
           Assign Task
         </button>
@@ -109,4 +144,4 @@ const AssignTask = ({ staffList = [], onAssignTask }) => {
   );
 };
 
-export default AssignTask;
+export default AssignTask;

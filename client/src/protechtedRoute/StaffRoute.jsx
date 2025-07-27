@@ -21,6 +21,7 @@ import CandidateTable from "../pages/users/CandidateTable";
 import GetTaskTable from "../pages/users/GetTaskTable";
 import DailyTaskForm from "../pages/users/DailyTaskForm";
 import CompanyTable from "../pages/users/CompanyTable";
+import InterviewScheduleTable from "../pages/users/InterviewScheduleTable";
 
 
 
@@ -44,12 +45,14 @@ const StaffRoute = () => {
       <Routes>
         <Route path="/" element={<UserDashoard />} />
         <Route path="/interview" element={<InterviewScheduler />} />
+        <Route path="/interviewget" element={<InterviewScheduleTable />} />
         <Route path="/companylisting" element={<CompanyRegistrationForm />} />
         <Route path="/getcompanylisting" element={<CompanyTable />} />
         <Route path="/candidate-data" element={<CandidateRegistrationForm  />} />
         <Route path="/get-candidate-data" element={<CandidateTable  />} />
         <Route path="/allotedtask" element={<GetTaskTable  />} />
         <Route path="/calender" element={< UserCalender />} />
+
         <Route path="/submittask" element={< DailyTaskForm />} />
        
         <Route path="/profile" element={<UserProfile />} /> 

@@ -84,11 +84,11 @@ const UserSidebar = () => {
                    icon: "fas fa-calendar-alt",
                    label: "Calendar",
                  },
-                 {
-                   path: "/user/submittask",
-                   icon: "fas fa-upload",
-                   label: "Submit Task",
-                 },
+                //  {
+                //    path: "/user/submittask",
+                //    icon: "fas fa-upload",
+                //    label: "Submit Task",
+                //  },
                  {
                    path: "/user/candidate-data",
                    icon: "fas fa-folder-open",
@@ -103,6 +103,11 @@ const UserSidebar = () => {
                    path: "/user/interview",
                    icon: "fas fa-folder-open",
                    label: "Interview",
+                 },
+                   {
+                   path: "/user/interviewget",
+                   icon: "fas fa-folder-open",
+                   label: "Get Interview list",
                  },
                    {
                    path: "/user/companylisting",

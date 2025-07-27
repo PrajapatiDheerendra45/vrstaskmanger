@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 
 const InterviewScheduler = () => {
   const [formData, setFormData] = useState({
@@ -8,21 +9,30 @@ const InterviewScheduler = () => {
     interviewType: "In-Person",
     hr: "",
     company: "",
-    status: "In progress",
+    status: "Scheduled",
     notes: "",
   });
 
+  const [candidates, setCandidates] = useState([]);
+  const [hrList, setHrList] = useState([]);
   const [searchCandidate, setSearchCandidate] = useState("");
 
-  const candidates = [
-    { id: 1, name: "Rahul Sharma" },
-    { id: 2, name: "Priya Verma" },
-    { id: 3, name: "Amit Patel" },
-    { id: 4, name: "Divya Singh" },
-    { id: 5, name: "Mohit Chauhan" },
-  ];
+  // ✅ Fetch candidates and HR on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const candidateRes = await axios.get("/api/v1/candidate/get");
+        setCandidates(candidateRes.data);
 
-  const hrList = ["Neha Gupta", "Rakesh Kumar", "Sonal Jain"];
+        const hrRes = await axios.get("/api/v1/users/getusers");
+        setHrList(hrRes.data.users || []); // assuming API returns { users: [] }
+      } catch (err) {
+        console.error("Fetch error:", err);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -32,22 +42,44 @@ const InterviewScheduler = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Interview Scheduled:", formData);
-    // Add API call here
+    try {
+      const res = await axios.post("/api/v1/interview/schedule", formData);
+
+      if (res?.data?.success) {
+        alert(res?.data?.message);
+        setFormData({
+          candidateId: "",
+          interviewDate: "",
+          interviewTime: "",
+          interviewType: "In-Person",
+          hr: "",
+          company: "",
+          status: "Scheduled",
+          notes: "",
+        });
+      }
+    } catch (err) {
+      alert("❌ Error scheduling interview");
+      console.error(err);
+    }
   };
 
   const filteredCandidates = candidates.filter((c) =>
-    c.name.toLowerCase().includes(searchCandidate.toLowerCase())
+    c.fullName.toLowerCase().includes(searchCandidate.toLowerCase())
   );
 
   return (
     <div className="max-w-2xl mx-auto bg-white shadow-md p-8 rounded-lg mt-10">
-      <h2 className="text-2xl font-semibold mb-6 text-gray-800">Interview Scheduler</h2>
+      <h2 className="text-2xl font-semibold mb-6 text-gray-800">
+        Interview Scheduler
+      </h2>
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="block text-sm font-medium mb-1">Search Candidate</label>
+          <label className="block text-sm font-medium mb-1">
+            Search Candidate
+          </label>
           <input
             type="text"
             placeholder="Search by name..."
@@ -64,7 +96,9 @@ const InterviewScheduler = () => {
           >
             <option value="">-- Select Candidate --</option>
             {filteredCandidates.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+              <option key={c._id} value={c._id}>
+                {c.fullName}
+              </option>
             ))}
           </select>
         </div>
@@ -81,7 +115,6 @@ const InterviewScheduler = () => {
               required
             />
           </div>
-
           <div>
             <label className="block text-sm font-medium mb-1">Time</label>
             <input
@@ -96,7 +129,9 @@ const InterviewScheduler = () => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Interview Type</label>
+          <label className="block text-sm font-medium mb-1">
+            Interview Type
+          </label>
           <select
             name="interviewType"
             value={formData.interviewType}
@@ -110,20 +145,19 @@ const InterviewScheduler = () => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Company Name</label>
+          <label className="block text-sm font-medium mb-1">Company</label>
           <input
             type="text"
             name="company"
             value={formData.company}
             onChange={handleChange}
-            placeholder="e.g., Infosys Ltd."
             className="w-full border border-gray-300 px-3 py-2 rounded-lg"
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Select HR</label>
+          <label className="block text-sm font-medium mb-1">HR</label>
           <select
             name="hr"
             value={formData.hr}
@@ -132,8 +166,10 @@ const InterviewScheduler = () => {
             required
           >
             <option value="">-- Select HR --</option>
-            {hrList.map((hr, idx) => (
-              <option key={idx} value={hr}>{hr}</option>
+            {hrList.map((hr) => (
+              <option key={hr._id} value={hr._id}>
+                {hr.name}
+              </option>
             ))}
           </select>
         </div>
@@ -148,6 +184,11 @@ const InterviewScheduler = () => {
           >
             <option value="In progress">In Progress</option>
             <option value="Pending">Pending</option>
+            <option value="Scheduled">Scheduled</option>
+            <option value="Selected">Selected</option>
+            <option value="Cancelled">Cancelled</option>
+            <option value="Rescheduled">Rescheduled</option>
+            <option value="Completed">Completed</option>
           </select>
         </div>
 
@@ -158,9 +199,8 @@ const InterviewScheduler = () => {
             value={formData.notes}
             onChange={handleChange}
             rows="3"
-            placeholder="Additional notes..."
             className="w-full border border-gray-300 px-3 py-2 rounded-lg"
-          ></textarea>
+          />
         </div>
 
         <button

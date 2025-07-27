@@ -3,8 +3,17 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 export const registerUser = async (req, res) => {
-
-  const { name, email, password, roleId,role, phone, designation, department, joiningDate } = req.body;
+  const {
+    name,
+    email,
+    password,
+    roleId,
+    role,
+    phone,
+    designation,
+    department,
+    joiningDate,
+  } = req.body;
 
   // 💥 Check required fields
   let missingFields = [];
@@ -12,13 +21,11 @@ export const registerUser = async (req, res) => {
     if (!req.body[field]) missingFields.push(field);
   });
   if (missingFields.length)
-    return res
-      .status(400)
-      .json({
-        message: `${missingFields.join(", ")} ${
-          missingFields.length > 1 ? "are" : "is"
-        } required`,
-      });
+    return res.status(400).json({
+      message: `${missingFields.join(", ")} ${
+        missingFields.length > 1 ? "are" : "is"
+      } required`,
+    });
 
   try {
     // Check if user already exists
@@ -39,7 +46,7 @@ export const registerUser = async (req, res) => {
       email,
       password: hashedPassword,
       roleId: roleId || undefined,
-      role:role|| undefined,
+      role: role || undefined,
       phone: phone || "",
       designation: designation || "",
       department: department || "",
@@ -69,13 +76,11 @@ export const loginUser = async (req, res) => {
     if (!req.body[field]) missingFields.push(field);
   });
   if (missingFields.length)
-    return res
-      .status(400)
-      .json({
-        message: `${missingFields.join(", ")} ${
-          missingFields.length > 1 ? "are" : "is"
-        } required`,
-      });
+    return res.status(400).json({
+      message: `${missingFields.join(", ")} ${
+        missingFields.length > 1 ? "are" : "is"
+      } required`,
+    });
 
   try {
     // Check if user exists
@@ -91,11 +96,9 @@ export const loginUser = async (req, res) => {
     }
 
     // Generate JWT token
-    const token = jwt.sign(
-      { id: user._id },
-      process.env.JWT_SECRET,
-      { expiresIn: "30d" }
-    );
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "30d",
+    });
 
     // Success response
     return res.status(200).json({
@@ -108,7 +111,7 @@ export const loginUser = async (req, res) => {
         email: user.email,
         role: user.role,
         roleId: user.roleId,
-        createdAt:user.createdAt,
+        createdAt: user.createdAt,
       },
     });
   } catch (error) {
@@ -138,10 +141,42 @@ export const getAllUsers = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+export const getAllUsersById = async (req, res) => {
+  try {
+    const { _id } = req.params;
+    const user = await User.findById(_id).select("-password");
+    if (!user) {
+      return res.status(404).json({
+        status: false,
+        message: "User not found",
+      });
+    }
+
+    return res.status(200).json({
+      status: true,
+      message: "User fetched successfully",
+      user,
+    });
+  } catch (error) {
+    console.error("Get user by ID error:", error.message);
+    return res.status(500).json({
+      status: false,
+      message: "Server error",
+    });
+  }
+};
 export const updateUser = async (req, res) => {
   try {
     const userId = req.params._id;
-    const { name, email, password, phone, designation, department, joiningDate } = req.body;
+    const {
+      name,
+      email,
+      password,
+      phone,
+      designation,
+      department,
+      joiningDate,
+    } = req.body;
 
     // Find user
     const user = await User.findById(userId);

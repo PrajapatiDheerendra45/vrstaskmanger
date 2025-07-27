@@ -5,7 +5,7 @@ import axios from "axios";
 import { X, Bold, Italic, AlignLeft, Smile, MapPin, Clock } from "lucide-react";
 import { useAuth } from "../../context/Auth";
 
-function UserCalender() {
+export default function CalendarComponent() {
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
   const [description, setDescription] = useState("");
@@ -15,28 +15,37 @@ function UserCalender() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState("month");
-  const [events, setEvents] = useState({});
+  const [events, setEvents] = useState([]);
   const [creatingEvent, setCreatingEvent] = useState(false);
   const [auth, setAuth] = useAuth();
 
-  // useEffect(() => {
-  //   const fetchEvents = async () => {
-  //     try {
-  //       const response = await axios.get(`/Calendar/events/`);
-  //       const fetchedEvents = response.data;
-  //       const formattedEvents = fetchedEvents.reduce((acc, event) => {
-  //         const eventDate = format(new Date(event.date), "yyyy-MM-dd");
-  //         if (!acc[eventDate]) acc[eventDate] = [];
-  //         acc[eventDate].push(event);
-  //         return acc;
-  //       }, {});
-  //       setEvents(formattedEvents);
-  //     } catch (error) {
-  //       console.error("Error fetching events:", error);
-  //     }
-  //   };
-  //   fetchEvents();
-  // }, [auth.user.id]);
+useEffect(() => {
+  const fetchEvents = async () => {
+    try {
+      const response = await axios.get(`/api/v1/event/get`);
+      const fetchedEvents = response?.data?.data || [];
+
+      const formattedEvents = fetchedEvents.reduce((acc, event) => {
+        const rawDate = event.date || event.createdAt;
+        if (!rawDate) return acc;
+
+        const eventDate = format(new Date(rawDate), "yyyy-MM-dd"); // 👈 Only Date
+        if (!acc[eventDate]) acc[eventDate] = [];
+        acc[eventDate].push(event);
+        return acc;
+      }, {});
+
+      setEvents(formattedEvents);
+    } catch (error) {
+      console.error("Error fetching events:", error);
+    }
+  };
+
+  fetchEvents();
+}, []);
+
+
+  
   const insertText = (text) => {
     console.log("Inserting text:", text);
     // Add logic here to insert text into a textarea or editor
@@ -60,7 +69,7 @@ function UserCalender() {
 
     try {
       const eventData = {
-        title,
+         title,
         date: new Date(dateTime).toISOString(),
         event_type: "meeting",
         description,
@@ -69,12 +78,10 @@ function UserCalender() {
           new Date(dateTime).getTime() + 60 * 60 * 1000
         ).toISOString(),
         repeat_weekly: 1,
-        admin_id:auth.user.id,
-      };
-
-      const response = await axios.post("/Calendar/events/create/", eventData, {
-        headers: { "Content-Type": "application/json" },
-      });
+       
+      };    
+      console.log("eventData",eventData)
+      const response = await axios.post("/api/v1/event/create", eventData);
 
       const formattedDate = format(new Date(dateTime), "yyyy-MM-dd");
       const newEvent = {
@@ -126,7 +133,7 @@ function UserCalender() {
       calendarCells.push(
         <div
           key={`empty-${i}`}
-          className="min-h-[110px] sm:min-h-[120px] border bg-gray-100 border-gray-300"
+          className="min-h-[110px] sm:min-h-[120px] border bg-gray-100 border-gray-300 font-serif"
         />
       );
     }
@@ -138,36 +145,34 @@ function UserCalender() {
       calendarCells.push(
         <div
           key={day}
-          className={`relative min-h-[110px] sm:min-h-[120px] border rounded-sm transition-all duration-200 text-xs sm:text-sm text-left p-2 sm:p-3
+          className={`relative min-h-[110px] sm:min-h-[120px] border rounded-sm transition-all duration-200 text-xs sm:text-sm text-left p-2 sm:p-3 font-serif
             ${
               events[eventDate]
-                ? "bg-blue-100 border-blue-400 shadow-sm hover:shadow-md"
-                : "bg-white border-gray-300 hover:bg-gray-100"
+                ? "bg-red-100 border-red-400 shadow-sm hover:shadow-md"
+                : "bg-white border-red-300 hover:bg-gray-100"
             }`}
           onClick={() => handleDateClick(day)}
         >
-          <div className="font-semibold text-sm sm:text-base mb-1 text-gray-700">
+          <div className="font-semibold text-sm sm:text-base mb-1 text-gray-700 font-serif">
             {day}
           </div>
 
           <div className="flex flex-col gap-1 pr-1">
-            {events[eventDate] &&
-              events[eventDate].filter((event)=> event.admin_id===auth.user.admin_id).map((event, index) => (
+            {console.log("events",events)}
+             {(events[eventDate] || []).map((event, index) => (
                 <div
                   key={index}
-                  className="bg-white border border-gray-300 rounded-md px-1 py-1 text-[11px] sm:text-xs shadow-sm hover:shadow-md transition-all"
+                  className="bg-white border border-gray-300 rounded-md px-1 py-1 text-[11px] sm:text-xs shadow-sm hover:shadow-md transition-all font-serif"
                 >
-                  <div className="font-semibold text-blue-600">
+                  <div className="font-semibold text-red-600">
                     {event.title}
                   </div>
                   <div className="text-gray-600">{event.description}</div>
-                  <div className="flex items-center justify-between text-gray-500 mt-1">
+                  <div className="flex items-center justify-between text-gray-500 mt-1 font-serif">
                     <span className="text-[10px] whitespace-nowrap">
-                      {event.date?.split(" ")[1] || "--:--"}
+                      {event.date?.split(" ")[1] ||"" }
                     </span>
-                    <span className="bg-gray-200 text-gray-700 text-[10px] px-1 rounded">
-                      {event.event_type}
-                    </span>
+                    
                   </div>
                 </div>
               ))}
@@ -182,7 +187,7 @@ function UserCalender() {
           {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
             <div
               key={day}
-              className="font-bold bg-cyan-500 border border-gray-800 p-1 sm:p-2"
+              className="font-bold bg-red-400 border border-gray-800 p-1 sm:p-2"
             >
               {day}
             </div>
@@ -194,9 +199,9 @@ function UserCalender() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center bg-gradient-to-r from-blue-500 to-purple-600 min-h-screen">
-      <div className="w-full overflow-x-auto p-4 sm:p-6 bg-white border border-gray-900 shadow-lg">
-        <div className="text-xl sm:text-3xl font-bold mt-5 mb-5">Calendar</div>
+    <div className="flex flex-col items-center justify-center bg-gradient-to-r from-red-500 to-purple-600 min-h-screen font-serif">
+      <div className="w-full overflow-x-auto p-4 sm:p-6 bg-white border border-gray-900 shadow-lg font-serif">
+        <div className="text-xl sm:text-3xl font-bold mt-5 mb-5 font-serif">Calendar</div>
 
         <div className="flex justify-between items-center font-bold mt-5">
           <div className="flex space-x-2">
@@ -212,6 +217,17 @@ function UserCalender() {
               </button>
             ))}
           </div>
+          {/* <button
+            className={`px-4 py-2 rounded-lg transform transition-all duration-200 ${
+              creatingEvent
+                ? "bg-gray-400"
+                : "bg-red-500 hover:scale-105 active:scale-95"
+            } text-white`}
+            onClick={() => setIsModalOpen(true)}
+            disabled={creatingEvent}
+          >
+            {creatingEvent ? "Select a Date" : "New Event"}
+          </button> */}
         </div>
 
         <div className="flex justify-between items-center mb-4 mt-5">
@@ -241,7 +257,7 @@ function UserCalender() {
               return (
                 <button
                   key={i}
-                  className="p-3 bg-gray-200 rounded-lg text-center text-sm sm:text-base font-semibold hover:bg-gray-300"
+                  className="p-3 bg-gray-200 rounded-lg text-center text-sm sm:text-base font-semibold hover:bg-gray-300 font-serif"
                   onClick={() => {
                     setCurrentDate(monthDate);
                     setView("month");
@@ -256,8 +272,8 @@ function UserCalender() {
       </div>
 
       {isModalOpen && (
-        <div className="  fixed inset-0 bg-black bg-opacity-60 flex items-center  overflow-y-auto justify-center p-4">
-          <div className=" w-500 m-auto absolute left-20 p-6 bg-blue-100 shadow-xl max-w-lg mx-auto rounded-lg font-serif relative shadow-blue-500 mt-15">
+        <div className="  fixed inset-0 bg-black bg-opacity-60 flex items-center  overflow-y-auto justify-center p-4 font-serif">
+          <div className=" w-500 m-auto absolute left-20 p-6 bg-red-100 shadow-xl max-w-lg mx-auto rounded-lg font-serif relative shadow-red-500 mt-15">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold"> Add New Event</h2>
               <button
@@ -276,7 +292,7 @@ function UserCalender() {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full border p-2 rounded focus:ring focus:ring-blue-300"
+                className="w-full border p-2 rounded focus:ring focus:ring-red-300"
               />
             </div>
 
@@ -314,7 +330,7 @@ function UserCalender() {
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full border p-2 rounded focus:ring focus:ring-blue-300 h-24"
+                className="w-full border p-2 rounded focus:ring focus:ring-red-300 h-24"
               ></textarea>
             </div>
 
@@ -325,7 +341,7 @@ function UserCalender() {
                   type="text"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  className="w-full border p-2 rounded focus:ring focus:ring-blue-300 pl-10"
+                  className="w-full border p-2 rounded focus:ring focus:ring-red-300 pl-10"
                 />
                 <MapPin
                   className="absolute top-3 left-3 text-gray-400"
@@ -342,7 +358,7 @@ function UserCalender() {
                 className={`w-12 h-6 flex items-center rounded-full p-1 transition duration-300
           ${
             durationType !== "without"
-              ? "bg-gradient-to-r from-blue-400 to-blue-600 shadow-md"
+              ? "bg-gradient-to-r from-red-400 to-red-600 shadow-md"
               : "bg-gray-300"
           }`}
                 onClick={() =>
@@ -369,7 +385,7 @@ function UserCalender() {
                       type="datetime-local"
                       value={dateTime}
                       onChange={(e) => setDateTime(e.target.value)}
-                      className="w-full border p-2 rounded focus:ring focus:ring-blue-300"
+                      className="w-full border p-2 rounded focus:ring focus:ring-red-300"
                     />
                   </div>
                 )}
@@ -389,4 +405,4 @@ function UserCalender() {
   );
 }
 
-export default UserCalender;
+

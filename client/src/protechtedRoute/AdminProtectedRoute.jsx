@@ -11,7 +11,7 @@ export const AdminProtectedRoute = () => {
     const storedData = localStorage.getItem("auth");
     const parsedData = storedData ? JSON.parse(storedData) : null;
 
-    console.log("🔐 LocalStorage auth:", parsedData);
+    
 
     const isAdmin = parsedData?.access && parsedData?.user?.role === 1;
     setOk(isAdmin);

@@ -89,7 +89,7 @@ const ManageEvent = () => {
         );
       } else {
         const response = await axios.post(
-          "/Calendar/events/create/",
+          "/api/v1/event/create",
           updatedEvent
         );
 

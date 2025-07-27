@@ -36,7 +36,7 @@ const AdminRoutes = () => {
       <Sidebar />
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-auto">s
+      <div className="flex-1 overflow-auto">
       <Routes>
         <Route path="/" element={<MainContentDash />} />
         {/* <Route path="/products" element={<Courses />} />  */}

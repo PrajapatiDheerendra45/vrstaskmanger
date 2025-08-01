@@ -17,7 +17,7 @@ const UserDashHeader = () => {
           animate={{ x: ["100%", "-100%"] }}
           transition={{ repeat: Infinity, duration: 6, ease: "linear" }}
         >
-          🚀 Welcome to Learning Management System | Empower Your Learning 📚
+          🚀 Welcome to VRS Manpower Solutions  | Empower Your Bussiness 📚
         </motion.div>
       </div>
 

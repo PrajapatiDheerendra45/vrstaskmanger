@@ -11,7 +11,7 @@ router.post("/create", createEvent);
 router.get("/get", getAllEvents);
 
 // GET: Single
-router.get("/event/:id", getEventById);
+router.get("/get/:id", getEventById);
 
 // PUT: Update
 router.put("/update/:id", updateEvent);

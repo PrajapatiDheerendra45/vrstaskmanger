@@ -17,6 +17,30 @@ const InterviewScheduler = () => {
   const [hrList, setHrList] = useState([]);
   const [searchCandidate, setSearchCandidate] = useState("");
 
+  const [companyList, setCompanyList] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const candidateRes = await axios.get("/api/v1/candidate/get");
+        setCandidates(candidateRes.data);
+
+        const hrRes = await axios.get("/api/v1/users/getusers");
+        setHrList(hrRes.data.users || []);
+
+        const companyRes = await axios.get("/api/v1/company/get");
+        const collaboratedCompanies = companyRes.data.filter(
+          (company) => company.status === "collaborated"
+        );
+        setCompanyList(collaboratedCompanies);
+      } catch (err) {
+        console.error("Fetch error:", err);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   // ✅ Fetch candidates and HR on mount
   useEffect(() => {
     const fetchData = async () => {
@@ -146,14 +170,20 @@ const InterviewScheduler = () => {
 
         <div>
           <label className="block text-sm font-medium mb-1">Company</label>
-          <input
-            type="text"
+          <select
             name="company"
             value={formData.company}
             onChange={handleChange}
             className="w-full border border-gray-300 px-3 py-2 rounded-lg"
             required
-          />
+          >
+            <option value="">-- Select Collaborated Company --</option>
+            {companyList.map((company) => (
+              <option key={company._id} value={company.companyName}>
+                {company.companyName}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>

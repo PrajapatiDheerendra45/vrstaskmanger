@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { useEffect } from "react";
 
 const CandidateRegistrationForm = () => {
   const [formData, setFormData] = useState({
@@ -11,7 +12,7 @@ const CandidateRegistrationForm = () => {
     skills: "",
     resume: null,
   });
-
+const [hrList, setHrList] = useState([]);
   const handleChange = (e) => {
     const { name, value, files } = e.target;
     if (name === "resume") {
@@ -20,7 +21,22 @@ const CandidateRegistrationForm = () => {
       setFormData({ ...formData, [name]: value });
     }
   };
+ useEffect(() => {
+    const fetchData = async () => {
+      try {
+       
 
+        const hrRes = await axios.get("/api/v1/users/getusers");
+        setHrList(hrRes?.data?.users || []);
+
+     
+      } catch (err) {
+        console.error("Fetch error:", err);
+      }
+    };
+
+    fetchData();
+  }, []);
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -137,6 +153,23 @@ const CandidateRegistrationForm = () => {
             className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
             min="0"
           />
+        </div>
+         <div>
+          <label className="block text-sm font-medium mb-1">HR</label>
+          <select
+            name="hr"
+            value={formData.hr}
+            onChange={handleChange}
+            className="w-full border border-gray-300 px-3 py-2 rounded-lg"
+            required
+          >
+            <option value="">-- Select HR --</option>
+            {hrList.map((hr) => (
+              <option key={hr._id} value={hr._id}>
+                {hr.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="md:col-span-2">

@@ -19,7 +19,7 @@ export default function CandidateTable() {
       try {
            
         const res = await axios.get(`/api/v1/candidate/get/`);
-        console.log("object", res);
+        // console.log("object", res);
         setCandidates(res.data);
         setFilteredCandidates(res.data);
       } catch (err) {

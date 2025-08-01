@@ -18,6 +18,9 @@ const Sidebar = () => {
   const handleLogout = () => {
     setShowPopup(true);
     setIsOpen(false);
+  localStorage.clear();
+  navigate("/")
+
     // You can also clear localStorage or token here if needed
   };
 
@@ -37,7 +40,7 @@ const Sidebar = () => {
     { path: "/admin/payment-submision", icon: "fa-solid fa-calendar-week", label: "SubmitPayment " },
     { path: "/admin/payment", icon: "fa-solid fa-calendar-week", label: "Payment Submision" },
     { path: "/admin/profile", icon: "fas fa-user", label: "Profile" },
-    { path: "/admin/settings", icon: "fas fa-cog", label: "Settings" },
+ 
   ];
 
   return (

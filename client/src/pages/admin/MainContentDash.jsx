@@ -102,17 +102,16 @@ const MainContentDash = () => {
             <i className="fas fa-search absolute left-3 top-3 text-gray-500"></i>
           </div>
         </div>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6 font-serif">
           {[
             {
-              title: "Total Courses",
+              title: "Total Company",
               value: "$540.50",
               image: grafleft,
               gradient: true,
             },
             {
-              title: "Spent this month",
+              title: "Total task",
               value: "$682.5",
               image: graf1,
               gradient: false,
@@ -124,7 +123,7 @@ const MainContentDash = () => {
               gradient: false,
             },
             {
-              title: "Users",
+              title: "Interview",
               value: "$540.50",
               image: grafright,
               gradient: true,
@@ -132,40 +131,34 @@ const MainContentDash = () => {
           ].map((item, index) => (
             <div
               key={index}
-              className="group relative w-full h-[150px] perspective-1000"
+              className="w-full h-[160px] [perspective:1000px] group relative"
             >
-              {/* Front Side */}
-              <div
-                className={`absolute inset-0 ${
-                  item.gradient
-                    ? "bg-gradient-to-r from-purple-500 to-blue-500 text-white"
-                    : "bg-white text-gray-900"
-                } p-6 rounded-lg shadow-md flex flex-col justify-center items-start transition-transform duration-500 group-hover:rotate-y-180`}
-                style={{
-                  backgroundImage: item.gradient
-                    ? `linear-gradient(to right, rgba(128,0,128,0.7), rgba(0,0,255,0.7)), url(${item.image})`
-                    : `url(${item.image})`,
-                  backgroundPosition: "right center",
-                  backgroundSize: "contain",
-                  backgroundRepeat: "no-repeat",
-                  backfaceVisibility: "hidden",
-                }}
-              >
-                <h3 className="text-2xl font-bold">{item.title}</h3>
-                <p className="text-lg">{item.value}</p>
-              </div>
+              <div className="relative w-full h-full transition-transform duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
+                {/* Front Side */}
+                <div
+                  className={`absolute w-full h-full rounded-lg shadow-md p-6 flex flex-col justify-center items-start [backface-visibility:hidden] ${
+                    item.gradient
+                      ? "bg-gradient-to-r from-purple-500 to-blue-500 text-white"
+                      : "bg-white text-gray-900"
+                  }`}
+                  style={{
+                    backgroundImage: item.gradient
+                      ? `linear-gradient(to right, rgba(128,0,128,0.7), rgba(0,0,255,0.7)), url(${item.image})`
+                      : `url(${item.image})`,
+                    backgroundPosition: "right center",
+                    backgroundSize: "contain",
+                    backgroundRepeat: "no-repeat",
+                  }}
+                >
+                  <h3 className="text-2xl font-bold">{item.title}</h3>
+                  <p className="text-lg">{item.value}</p>
+                </div>
 
-              {/* Back Side */}
-              <div
-                className="absolute inset-0 bg-gray-200 text-gray-800 p-6 rounded-lg shadow-md flex flex-col justify-center items-center transform rotate-y-180 transition-transform duration-500 group-hover:rotate-y-0"
-                style={{
-                  backfaceVisibility: "hidden",
-                }}
-              >
-                <h3 className="text-xl font-bold font-serif">More Info</h3>
-                <p className="text-sm font-serif">
-                  Detailed insights will be available soon!
-                </p>
+                {/* Back Side */}
+                <div className="absolute w-full h-full rounded-lg shadow-md p-6 flex flex-col justify-center items-center bg-gray-100 text-gray-800 [transform:rotateY(180deg)] [backface-visibility:hidden]">
+                  <h3 className="text-xl font-bold">More Info</h3>
+                  <p className="text-sm text-center">Details coming soon...</p>
+                </div>
               </div>
             </div>
           ))}

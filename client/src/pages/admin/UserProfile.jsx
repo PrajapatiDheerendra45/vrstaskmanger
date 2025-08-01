@@ -22,26 +22,26 @@ import {
       address: "",
     });
   
-    useEffect(() => {
-      if (!auth?.AccessToken) return;
+ 
+
       const fetchUserData = async () => {
         try {
-          const response = await axios.get(`https://hola9.in/auth/users/${auth.user.id}/`, {
-            headers: {
-              Authorization: `Bearer ${auth.AccessToken}`,
-              "Content-Type": "application/json",
-            },
-          });
-          setUser(response.data);
-          setFormData(response.data);
+
+           const user = JSON.parse(localStorage.getItem("auth")); // Get user from localStorage
+        const userId = user?.user?._id;
+          const response = await axios.get(`/api/v1/users/getusers/${userId}`);
+       
+          setUser(response.data.user);
+          setFormData(response.data.user);
         } catch (err) {
           setError("Failed to fetch user data");
         } finally {
           setLoading(false);
         }
       };
+         useEffect(() => {
       fetchUserData();
-    }, [auth]);
+    }, []);
   
     const handleInputChange = (e) => {
       setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -49,13 +49,11 @@ import {
   
     const handleUpdate = async () => {
       try {
-        const response = await axios.put(`https://hola9.in/auth/users/${auth.user.id}/`, formData, {
-          headers: {
-            Authorization: `Bearer ${auth.AccessToken}`,
-            "Content-Type": "application/json",
-          },
-        });
-        setUser(response.data);
+          const user = JSON.parse(localStorage.getItem("auth")); // Get user from localStorage
+        const userId = user?.user?._id;
+        const response = await axios.put(`/api/v1/users/update/${userId}/`, formData);
+        
+        setUser(response.data.user);
         setIsModalOpen(false);
       } catch (err) {
         console.error("Update Error:", err.response?.data);
@@ -75,9 +73,10 @@ import {
             <p className="text-sm opacity-90">Administrator</p>
           </div>
           <div className="p-6 space-y-4">
+          
             <div className="flex items-center space-x-3">
               <FaSortNumericDown className="text-blue-500 text-lg" />
-              <span className="text-gray-700 font-medium">{user?.id}</span>
+              <span className="text-gray-700 font-medium">{user?.designation}</span>
             </div>
             <div className="flex items-center space-x-3">
               <FaEnvelope className="text-blue-500 text-lg" />
@@ -85,11 +84,11 @@ import {
             </div>
             <div className="flex items-center space-x-3">
               <FaPhone className="text-green-500 text-lg" />
-              <span className="text-gray-700 font-medium">{user?.phone_number}</span>
+              <span className="text-gray-700 font-medium">{user?.phone}</span>
             </div>
             <div className="flex items-center space-x-3">
               <FaMapMarkerAlt className="text-red-500 text-lg" />
-              <span className="text-gray-700 font-medium">{user?.address}</span>
+              <span className="text-gray-700 font-medium">{user?.department}</span>
             </div>
             <div className="flex mt-6">
               <button
@@ -110,8 +109,8 @@ import {
               <div className="space-y-4">
                 <input type="text" name="name" value={formData.name} onChange={handleInputChange} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-400" placeholder="Name" />
                 <input type="email" name="email" value={formData.email} onChange={handleInputChange} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-400" placeholder="Email" />
-                <input type="text" name="phone_number" value={formData.phone_number} onChange={handleInputChange} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-400" placeholder="Phone Number" />
-                <input type="text" name="address" value={formData.address} onChange={handleInputChange} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-400" placeholder="Address" />
+                <input type="text" name="phone_number" value={formData.phone} onChange={handleInputChange} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-400" placeholder="Phone Number" />
+                <input type="text" name="address" value={formData.department} onChange={handleInputChange} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-400" placeholder="Address" />
               </div>
               <div className="flex justify-between mt-6">
                 <button className="bg-gray-300 text-gray-700 px-5 py-2 rounded-lg hover:bg-gray-400" onClick={() => setIsModalOpen(false)}>Cancel</button>

@@ -22,7 +22,8 @@ const UserSidebar = () => {
 
     setShowPopup(true);
     setUser(null);
-
+  localStorage.clear();
+  navigate("/")
     setTimeout(() => {
       setShowPopup(false);
       navigate("/");
@@ -129,11 +130,7 @@ const UserSidebar = () => {
                    icon: "fas fa-user",
                    label: "Profile",
                  },
-                 {
-                   path: "/user/logout",
-                   icon: "fas fa-sign-out-alt",
-                   label: "Logout",
-                 },
+                
               ].map((item, index) => (
                 <Link
                   key={index}
@@ -145,7 +142,15 @@ const UserSidebar = () => {
                   <span className="ml-3 hover:text-blue-500">{item.label}</span>
                 </Link>
               ))}
+                 <button
+                onClick={handleLogout}
+                className="flex items-center w-full p-2 mt-2 text-gray-600 hover:bg-red-400 font-bold"
+              >
+                <i className="fas fa-sign-out-alt text-gray-600"></i>
+                <span className="ml-3 hover:text-white">Logout</span>
+              </button>
             </nav>
+            
           </div>
 
           {/* Upgrade to Pro Button */}

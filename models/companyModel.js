@@ -11,6 +11,20 @@ const companySchema = new mongoose.Schema(
     state: { type: String },
     zip: { type: String },
     hrname: { type: String, required: true },
+    status: {
+      type: String,
+      enum: [
+        "pending", // Awaiting decision
+        "collaborated", // Successfully collaborated
+        "not_collaborated", // Not collaborated
+        "rejected", // Explicitly rejected
+        "under_review", // Currently being reviewed
+        "approved", // Approved for collaboration
+        "declined", // Collaboration request declined
+        "on_hold", // Decision put on hold
+      ],
+      default: "pending",
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User", // or your own user model

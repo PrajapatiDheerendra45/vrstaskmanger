@@ -22,15 +22,24 @@ export const getAllInterviews = async (req, res) => {
 };
 
 // Get Interview by ID
-export const getInterviewById = async (req, res) => {
+export const getInterviewByHrId = async (req, res) => {
   try {
-    const interview = await Interview.findById(req.params.id);
-    if (!interview) return res.status(404).json({ success: false, message: 'Interview not found' });
-    res.status(200).json({ success: true, interview });
+    const interview = await Interview.find({ hr: req.params.id });
+    
+    if (!interview || interview.length === 0) {
+      return res.status(404).json({ success: false, message: 'Interview not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Interview list fetched successfully!",
+      interview
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 // Update Interview
 export const updateInterview = async (req, res) => {

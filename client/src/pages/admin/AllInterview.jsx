@@ -3,6 +3,9 @@ import axios from 'axios';
 
 const InterviewScheduleTable = () => {
   const [schedules, setSchedules] = useState([]);
+  const [filteredSchedules, setFilteredSchedules] = useState([]);
+  const [candidateFilter, setCandidateFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   useEffect(() => {
     const fetchSchedules = async () => {
@@ -10,7 +13,6 @@ const InterviewScheduleTable = () => {
         const res = await axios.get('/api/v1/interview/get');
         const data = res.data.interviews;
 
-        // Fetch candidate and HR names for each schedule
         const enrichedData = await Promise.all(
           data.map(async (item) => {
             let candidateName = 'N/A';
@@ -18,7 +20,6 @@ const InterviewScheduleTable = () => {
 
             try {
               const candidateRes = await axios.get(`/api/v1/candidate/candidate/${item.candidateId}`);
-              console.log("candidateRes",candidateRes)
               candidateName = candidateRes?.data?.data.fullName;
             } catch (err) {
               console.warn('Candidate fetch failed', err);
@@ -26,7 +27,6 @@ const InterviewScheduleTable = () => {
 
             try {
               const hrRes = await axios.get(`/api/v1/users/getusers/${item.hr}`);
-              console.log("hrRes",hrRes)
               hrName = hrRes.data.user.name;
             } catch (err) {
               console.warn('HR fetch failed', err);
@@ -41,6 +41,7 @@ const InterviewScheduleTable = () => {
         );
 
         setSchedules(enrichedData);
+        setFilteredSchedules(enrichedData);
       } catch (error) {
         console.error('Failed to fetch interview data:', error);
       }
@@ -48,6 +49,22 @@ const InterviewScheduleTable = () => {
 
     fetchSchedules();
   }, []);
+
+  useEffect(() => {
+    let filtered = schedules;
+
+    if (candidateFilter) {
+      filtered = filtered.filter((item) =>
+        item.candidateName.toLowerCase().includes(candidateFilter.toLowerCase())
+      );
+    }
+
+    if (statusFilter) {
+      filtered = filtered.filter((item) => item.status === statusFilter);
+    }
+
+    setFilteredSchedules(filtered);
+  }, [candidateFilter, statusFilter, schedules]);
 
   const getStatusColor = (status) => {
     const colors = {
@@ -62,9 +79,34 @@ const InterviewScheduleTable = () => {
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
+  const allStatuses = [...new Set(schedules.map((s) => s.status))];
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">📅 Interview Schedules</h2>
+
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        <input
+          type="text"
+          placeholder="Filter by Candidate Name"
+          className="border border-gray-300 rounded-md px-4 py-2 shadow"
+          value={candidateFilter}
+          onChange={(e) => setCandidateFilter(e.target.value)}
+        />
+
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="border border-gray-300 rounded-md px-4 py-2 shadow"
+        >
+          <option value="">All Statuses</option>
+          {allStatuses.map((status, index) => (
+            <option key={index} value={status}>
+              {status}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <div className="overflow-x-auto rounded-lg shadow ring-1 ring-black ring-opacity-5">
         <table className="min-w-full divide-y divide-gray-200 text-sm text-left">
@@ -82,7 +124,7 @@ const InterviewScheduleTable = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-100">
-            {schedules.map((item, index) => (
+            {filteredSchedules.map((item, index) => (
               <tr key={index} className="hover:bg-gray-50">
                 <td className="px-4 py-3 font-medium">{item.candidateName}</td>
                 <td className="px-4 py-3 capitalize">{item.company}</td>
@@ -99,7 +141,7 @@ const InterviewScheduleTable = () => {
                 <td className="px-4 py-3 text-gray-600">{new Date(item.createdAt).toLocaleString()}</td>
               </tr>
             ))}
-            {schedules.length === 0 && (
+            {filteredSchedules.length === 0 && (
               <tr>
                 <td colSpan="9" className="text-center py-6 text-gray-500">
                   No interview schedules found.

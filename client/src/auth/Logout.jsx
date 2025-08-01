@@ -5,15 +5,17 @@ const Logout = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Clear session storage
-    sessionStorage.clear();
-    
-    // Reload the page after 2 seconds
-    setTimeout(() => {
-      window.location.reload();
-      navigate("/");
-    }, 3000);
-  }, [navigate]);
+  console.log("Before clear:", localStorage);
+
+  localStorage.clear();  // Attempt to clear everything
+
+  console.log("After clear:", localStorage); // Check if anything remains
+
+  setTimeout(() => {
+    navigate("/");
+  }, 3000);
+}, [navigate]);
+
 
   return (
     <div className="flex items-center justify-center h-screen bg-gradient-to-br from-purple-800 via-indigo-600 to-blue-500 text-white text-center">

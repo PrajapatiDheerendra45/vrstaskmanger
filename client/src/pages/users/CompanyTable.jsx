@@ -75,7 +75,7 @@ const CompanyTable = () => {
               <th className="px-4 py-2 border">City</th>
               <th className="px-4 py-2 border">State</th>
               <th className="px-4 py-2 border">Zip</th>
-              <th className="px-4 py-2 border">HR Name</th>
+              {/* <th className="px-4 py-2 border">HR Name</th> */}
               <th className="px-4 py-2 border">Actions</th>
             </tr>
           </thead>
@@ -98,7 +98,7 @@ const CompanyTable = () => {
                   <td className="px-4 py-2 border">{company.city}</td>
                   <td className="px-4 py-2 border">{company.state}</td>
                   <td className="px-4 py-2 border">{company.zip}</td>
-                  <td className="px-4 py-2 border">{company.hrname}</td>
+                  {/* <td className="px-4 py-2 border">{company.hrname}</td> */}
                   <td className="px-4 py-2 border space-x-2 flex">
                     <button
                       onClick={() => handleUpdate(company._id)}

@@ -24,9 +24,9 @@ const ManageEvent = () => {
 
   const fetchData = async () => {
     try {
-      const response = await axios.get("https://hola9.in/Calendar/events/");
-      console.log("Fetched Events:", response.data);
-      setEvents(response.data);
+      const response = await axios.get("/api/v1/event/get");
+      console.log("Fetched Events:", response);
+      setEvents(response.data.data);
     } catch (error) {
       console.error("Error fetching events:", error);
     }
@@ -52,10 +52,7 @@ const ManageEvent = () => {
 
   const saveEvent = async () => {
     try {
-      if (!newEvent.event_type) {
-        alert("Please select a valid event type.");
-        return;
-      }
+
 
       const updatedEvent = {
         title: newEvent.title,
@@ -66,35 +63,34 @@ const ManageEvent = () => {
         event_type: newEvent.event_type,
         description: newEvent.description,
         location: newEvent.location,
-        repeat_weekly: newEvent.repeat_weekly
-          ? parseInt(newEvent.repeat_weekly, 10) || 1
-          : 0,
+       
       };
 
       console.log("Updated Event Payload:", updatedEvent);
-
-      if (selectedEvent) {
+        console.log("updatedEvent",selectedEvent)
+      if (selectedEvent._id) {
+       
+        console.log(``)
         const response = await axios.put(
-          `/Calendar/events/update/${selectedEvent.id}/`,
+          `/api/v1/event/update/${selectedEvent._id}/`,
           updatedEvent
         );
         toast.success("Event Updated Successfully");
-        console.log("Updated Event Response:", response.data);
+           fetchData();
 
         // Update state immediately
-        setEvents((prevEvents) =>
-          prevEvents.map((event) =>
-            event.id === selectedEvent.id ? response.data : event
-          )
-        );
+        // setEvents((prevEvents) =>
+        //   prevEvents.map((event) =>
+        //     event.id === selectedEvent.id ? response.data : event
+        //   )
+        // );
       } else {
         const response = await axios.post(
           "/api/v1/event/create",
           updatedEvent
         );
 
-        console.log("New Event Response:", response.data);
-
+      
         // Append new event to state
         setEvents((prevEvents) => [...prevEvents, response.data]);
       }
@@ -109,7 +105,7 @@ const ManageEvent = () => {
   const deleteEvent = async (id) => {
     if (window.confirm("Are you sure you want to delete this event?")) {
       try {
-        await axios.delete(`/Calendar/events/delete/${id}/`);
+        await axios.delete(`/api/v1/event/delete/${id}/`);
         setEvents(events.filter((event) => event.id !== id));
       } catch (error) {
         console.error("Error deleting event:", error);

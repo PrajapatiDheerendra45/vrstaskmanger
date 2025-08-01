@@ -12,7 +12,7 @@ export default function CandidateTable() {
   const [search, setSearch] = useState("");
   const [candidates, setCandidates] = useState([]);
   const [filteredCandidates, setFilteredCandidates] = useState([]);
-
+  
   // Fetch candidates from API on mount
   useEffect(() => {
     const fetchCandidates = async () => {

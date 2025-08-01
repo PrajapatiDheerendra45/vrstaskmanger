@@ -15,6 +15,8 @@ export const registerUser = async (req, res) => {
     joiningDate,
   } = req.body;
 
+
+
   // 💥 Check required fields
   let missingFields = [];
   ["name", "email", "password"].forEach((field) => {

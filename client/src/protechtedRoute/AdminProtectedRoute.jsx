@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Outlet } from "react-router-dom";
-import Loader from "../Component/Loader.jsx";
+import Loader from "../component/Loader.jsx";
 
 export const AdminProtectedRoute = () => {
   const [ok, setOk] = useState(false);

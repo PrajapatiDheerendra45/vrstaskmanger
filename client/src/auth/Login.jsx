@@ -25,11 +25,11 @@ const Login = () => {
     const storedAuth = localStorage.getItem("auth");
     const auth = storedAuth ? JSON.parse(storedAuth) : null;
 
-    console.log("🔁 Redirect check from localStorage", auth);
+    // console.log("🔁 Redirect check from localStorage", auth);
 
-    if (auth?.user?.role === "Admin") {
+    if (auth?.user?.role === 1) {
       navigate("/admin");
-    } else if (auth?.user?.role === "User" && auth?.access) {
+    } else if (auth?.user?.role === 0 && auth?.AccessToken) {
       navigate("/user");
     }
   }, [navigate]);

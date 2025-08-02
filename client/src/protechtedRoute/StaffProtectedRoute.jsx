@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Outlet } from "react-router-dom";
-import Loader from "../Component/Loader.jsx";
+import Loader from "../components/Loader";
 
 export const StaffProtectedRoute = () => {
   const [ok, setOk] = useState(false);

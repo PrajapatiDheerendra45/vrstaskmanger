@@ -49,6 +49,7 @@ const handleSubmit = async (e) => {
       role: Number(role),
     });
 
+    console.log("response",response)
     if (response.status === 200) {
       const token = response.data.token;
       const user = response.data.user;

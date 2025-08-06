@@ -15,13 +15,7 @@ connectDB();
 
 const app = express();
 
-// ✅ Use only express.json
 app.use(express.json());
-
-
-
-
-
 app.use(cors());
 app.use('/uploads', express.static('uploads')); // serve resume files
 app.use('/api/v1/candidate',candidateRoutes);

@@ -3,14 +3,13 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-"scripts": {
-  "dev": "vite",
-  "lint": "eslint .",
-  "preview": "vite preview",
-  "build": "vite build",
-  "start": "node server.js"
-}
-,
+  "scripts": {
+    "dev": "vite",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "build": "vite build",
+    "start": "node server.js"
+  },
   "dependencies": {
     "@tanstack/react-table": "^8.21.3",
     "axios": "^1.10.0",

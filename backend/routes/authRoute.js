@@ -10,7 +10,7 @@ router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
 router.post('/google-login', googleLogin);
 router.get('/getusers', getAllUsers);
-router.get('/getusers/:id', getAllUsersById);
+router.get('/getusers/:_id', getAllUsersById);
 router.get('/dashboard-stats/:userId', getUserDashboardStats);
 router.put("/update/:_id", updateUser);
 router.delete("/delete/:_id", deleteUser);

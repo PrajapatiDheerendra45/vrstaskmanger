@@ -4,7 +4,7 @@ import { FaHome } from "react-icons/fa";
 
 const Unauthorized = () => {
   const navigate = useNavigate();
-  sessionStorage.clear();
+  localStorage.clear();
   return (
     <div className="flex items-center justify-center h-screen bg-red-600 text-white text-center p-6">
       <motion.div

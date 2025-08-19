@@ -11,7 +11,7 @@ const AuthProvider = ({ children }) => {
   });
 
   useEffect(() => {
-    const storedData = sessionStorage.getItem("auth");
+    const storedData = localStorage.getItem("auth");
    
     if (storedData) {
       try {

@@ -10,7 +10,7 @@ const SessionTimeout = () => {
     const timeoutDuration = 120 * 60 * 1000; // 120 minutes in ms // ⏱️ For testing, 20 seconds (Use 120*60*1000 for 120 min)
     
     const sessionTimer = setTimeout(() => {
-      sessionStorage.clear(); // Clear session or local storage
+      localStorage.clear(); // Clear local storage
       setShowPopup(true); // Show popup
 
       // Redirect after few seconds (optional)

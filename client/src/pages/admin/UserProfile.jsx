@@ -18,23 +18,38 @@ import {
     const [formData, setFormData] = useState({
       name: "",
       email: "",
-      phone_number: "",
-      address: "",
+      phone: "",
+      department: "",
     });
   
  
 
       const fetchUserData = async () => {
         try {
-
-           const user = JSON.parse(localStorage.getItem("auth")); // Get user from localStorage
-        const userId = user?.user?._id;
+          const user = JSON.parse(localStorage.getItem("auth")); // Get user from localStorage
+          const userId = user?.user?._id;
+          
+          if (!userId) {
+            setError("User ID not found in localStorage");
+            setLoading(false);
+            return;
+          }
+          
+          console.log("Fetching user data for ID:", userId);
           const response = await axios.get(`/api/v1/users/getusers/${userId}`);
+          console.log("User data response:", response.data);
        
           setUser(response.data.user);
-          setFormData(response.data.user);
+          setFormData({
+            name: response.data.user.name || "",
+            email: response.data.user.email || "",
+            phone: response.data.user.phone || "",
+            department: response.data.user.department || "",
+          });
         } catch (err) {
-          setError("Failed to fetch user data");
+          console.error("Fetch error:", err);
+          console.error("Error response:", err.response?.data);
+          setError(`Failed to fetch user data: ${err.response?.data?.message || err.message}`);
         } finally {
           setLoading(false);
         }
@@ -49,15 +64,26 @@ import {
   
     const handleUpdate = async () => {
       try {
-          const user = JSON.parse(localStorage.getItem("auth")); // Get user from localStorage
+        const user = JSON.parse(localStorage.getItem("auth")); // Get user from localStorage
         const userId = user?.user?._id;
-        const response = await axios.put(`/api/v1/users/update/${userId}/`, formData);
+        
+        if (!userId) {
+          alert("User ID not found");
+          return;
+        }
+        
+        console.log("Updating user data for ID:", userId);
+        console.log("Form data:", formData);
+        
+        const response = await axios.put(`/api/v1/users/update/${userId}`, formData);
+        console.log("Update response:", response.data);
         
         setUser(response.data.user);
         setIsModalOpen(false);
+        alert("Profile updated successfully!");
       } catch (err) {
         console.error("Update Error:", err.response?.data);
-        alert("Failed to update user data");
+        alert(`Failed to update user data: ${err.response?.data?.message || err.message}`);
       }
     };
   
@@ -109,8 +135,8 @@ import {
               <div className="space-y-4">
                 <input type="text" name="name" value={formData.name} onChange={handleInputChange} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-400" placeholder="Name" />
                 <input type="email" name="email" value={formData.email} onChange={handleInputChange} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-400" placeholder="Email" />
-                <input type="text" name="phone_number" value={formData.phone} onChange={handleInputChange} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-400" placeholder="Phone Number" />
-                <input type="text" name="address" value={formData.department} onChange={handleInputChange} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-400" placeholder="Address" />
+                <input type="text" name="phone" value={formData.phone} onChange={handleInputChange} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-400" placeholder="Phone Number" />
+                <input type="text" name="department" value={formData.department} onChange={handleInputChange} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-400" placeholder="Department" />
               </div>
               <div className="flex justify-between mt-6">
                 <button className="bg-gray-300 text-gray-700 px-5 py-2 rounded-lg hover:bg-gray-400" onClick={() => setIsModalOpen(false)}>Cancel</button>

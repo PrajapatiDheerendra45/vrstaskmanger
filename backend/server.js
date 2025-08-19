@@ -9,6 +9,7 @@ import taskRoutes from "./routes/taskRoutes.js";
 import interviewRoutes from "./routes/interviewRoutes.js";
 import eventRoutes from "./routes/eventRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
+import expenseRoutes from "./routes/expenseRoutes.js";
 
 dotenv.config();
 connectDB();
@@ -25,6 +26,7 @@ app.use('/api/v1/company', companyRoutes);
 app.use('/api/v1/interview', interviewRoutes);
 app.use("/api/v1/event", eventRoutes);
 app.use("/api/v1/payment", paymentRoutes);
+app.use("/api/v1/expense", expenseRoutes);
 app.get('/', (req, res) => {
   res.send('Task Manager API is working ✅');
 });

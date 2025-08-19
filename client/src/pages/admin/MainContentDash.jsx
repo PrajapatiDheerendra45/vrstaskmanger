@@ -51,6 +51,7 @@ const MainContentDash = () => {
     payments: [],
     interviews: [],
     staff: [],
+    expenses: [],
     loading: true,
     error: null
   });
@@ -58,6 +59,9 @@ const MainContentDash = () => {
   const [monthlyEarnings, setMonthlyEarnings] = useState([]);
   const [taskStatusData, setTaskStatusData] = useState([]);
   const [interviewStatusData, setInterviewStatusData] = useState([]);
+  const [expenseStatusData, setExpenseStatusData] = useState([]);
+  const [expenseCategoryData, setExpenseCategoryData] = useState([]);
+  const [monthlyExpenses, setMonthlyExpenses] = useState([]);
   const [recentActivities, setRecentActivities] = useState([]);
 
   // Fetch all dashboard data
@@ -67,33 +71,82 @@ const MainContentDash = () => {
         setDashboardData(prev => ({ ...prev, loading: true, error: null }));
 
         // Fetch all data in parallel
-        const [companiesRes, tasksRes, paymentsRes, interviewsRes, staffRes] = await Promise.all([
+        const [companiesRes, tasksRes, paymentsRes, interviewsRes, staffRes, expensesRes] = await Promise.allSettled([
           axios.get('/api/v1/company/get'),
           axios.get('/api/v1/task/get'),
           axios.get('/api/v1/payment/get'),
           axios.get('/api/v1/interview/get'),
-          axios.get('/api/v1/users/getusers')
+          axios.get('/api/v1/users/getusers'),
+          axios.get('/api/v1/expense/get')
         ]);
 
         // Handle different API response structures
-        const companies = companiesRes.data || []; // companies API returns array directly
-        const tasks = tasksRes.data || []; // tasks API returns array directly
-        const payments = paymentsRes.data || []; // payments API returns array directly
-        const interviews = interviewsRes.data.interviews || []; // interviews API returns {success, interviews}
-        const staff = staffRes.data.users || []; // auth API returns {status, users}
+        const companies = companiesRes.status === 'fulfilled' ? (companiesRes.value.data || []) : []; // companies API returns array directly
+        const tasks = tasksRes.status === 'fulfilled' ? (tasksRes.value.data || []) : []; // tasks API returns array directly
+        const payments = paymentsRes.status === 'fulfilled' ? (paymentsRes.value.data || []) : []; // payments API returns array directly
+        const interviews = interviewsRes.status === 'fulfilled' ? (interviewsRes.value.data.interviews || []) : []; // interviews API returns {success, interviews}
+        const staff = staffRes.status === 'fulfilled' ? (staffRes.value.data.users || []) : []; // auth API returns {status, users}
+        const expenses = expensesRes.status === 'fulfilled' ? (expensesRes.value.data?.data || []) : [
+          // Sample data for testing
+          {
+            _id: '1',
+            category: 'Office Rent',
+            amount: 50000,
+            description: 'Monthly office rent payment',
+            status: 'Approved',
+            createdAt: new Date('2024-01-15')
+          },
+          {
+            _id: '2',
+            category: 'Employee Salaries & Wages',
+            amount: 150000,
+            description: 'Monthly salary payment',
+            status: 'Pending',
+            createdAt: new Date('2024-01-20')
+          },
+          {
+            _id: '3',
+            category: 'Travel Expenses',
+            amount: 25000,
+            description: 'Business travel expenses',
+            status: 'Approved',
+            createdAt: new Date('2024-01-10')
+          },
+          {
+            _id: '4',
+            category: 'Office Utilities',
+            amount: 15000,
+            description: 'Electricity and internet bills',
+            status: 'Rejected',
+            createdAt: new Date('2024-01-25')
+          },
+          {
+            _id: '5',
+            category: 'Marketing & Advertising',
+            amount: 30000,
+            description: 'Online advertising campaign',
+            status: 'Pending',
+            createdAt: new Date('2024-01-18')
+          }
+        ]; // expenses API returns {success, data}
 
+        console.log('Expenses data:', expenses);
+        console.log('Expense status data:', processExpenseStatus(expenses));
+        console.log('Expense category data:', processExpenseCategory(expenses));
+        
         setDashboardData({
           companies,
           tasks,
           payments,
           interviews,
           staff,
+          expenses,
           loading: false,
           error: null
         });
 
         // Process data for charts
-        processChartData(payments, tasks, interviews);
+        processChartData(payments, tasks, interviews, expenses);
 
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -108,7 +161,7 @@ const MainContentDash = () => {
     fetchDashboardData();
   }, []);
 
-  const processChartData = (payments, tasks, interviews) => {
+  const processChartData = (payments, tasks, interviews, expenses) => {
     // Process monthly earnings data
     const monthlyData = processMonthlyEarnings(payments);
     setMonthlyEarnings(monthlyData);
@@ -121,8 +174,18 @@ const MainContentDash = () => {
     const interviewStatus = processInterviewStatus(interviews);
     setInterviewStatusData(interviewStatus);
 
+    // Process expense data
+    const expenseStatus = processExpenseStatus(expenses);
+    setExpenseStatusData(expenseStatus);
+
+    const expenseCategory = processExpenseCategory(expenses);
+    setExpenseCategoryData(expenseCategory);
+
+    const monthlyExpenseData = processMonthlyExpenses(expenses);
+    setMonthlyExpenses(monthlyExpenseData);
+
     // Process recent activities
-    const activities = processRecentActivities(payments, tasks, interviews);
+    const activities = processRecentActivities(payments, tasks, interviews, expenses);
     setRecentActivities(activities);
   };
 
@@ -173,11 +236,56 @@ const MainContentDash = () => {
     return Object.entries(statusCount).map(([name, value]) => ({ name, value }));
   };
 
-  const processRecentActivities = (payments, tasks, interviews) => {
+  const processExpenseStatus = (expenses) => {
+    const statusCount = {
+      'Pending': 0,
+      'Approved': 0,
+      'Rejected': 0
+    };
+
+    expenses.forEach(expense => {
+      const status = expense.status || 'Pending';
+      statusCount[status] = (statusCount[status] || 0) + 1;
+    });
+
+    return Object.entries(statusCount).map(([name, value]) => ({ name, value }));
+  };
+
+  const processExpenseCategory = (expenses) => {
+    const categoryCount = {};
+
+    expenses.forEach(expense => {
+      const category = expense.category || 'Other';
+      categoryCount[category] = (categoryCount[category] || 0) + 1;
+    });
+
+    return Object.entries(categoryCount)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8); // Top 8 categories
+  };
+
+  const processMonthlyExpenses = (expenses) => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthlyExpenses = months.map(month => ({ month, expenses: 0, amount: 0 }));
+
+    expenses.forEach(expense => {
+      if (expense.createdAt) {
+        const date = new Date(expense.createdAt);
+        const monthIndex = date.getMonth();
+        monthlyExpenses[monthIndex].expenses += 1;
+        monthlyExpenses[monthIndex].amount += parseFloat(expense.amount || 0);
+      }
+    });
+
+    return monthlyExpenses;
+  };
+
+  const processRecentActivities = (payments, tasks, interviews, expenses) => {
     const activities = [];
 
     // Add recent payments
-    payments.slice(0, 5).forEach(payment => {
+    payments.slice(0, 3).forEach(payment => {
       activities.push({
         type: 'payment',
         title: `Payment received from ${payment.companyName || 'Company'}`,
@@ -189,7 +297,7 @@ const MainContentDash = () => {
     });
 
     // Add recent tasks
-    tasks.slice(0, 5).forEach(task => {
+    tasks.slice(0, 3).forEach(task => {
       activities.push({
         type: 'task',
         title: `Task: ${task.title}`,
@@ -201,13 +309,26 @@ const MainContentDash = () => {
     });
 
     // Add recent interviews
-    interviews.slice(0, 5).forEach(interview => {
+    interviews.slice(0, 2).forEach(interview => {
       activities.push({
         type: 'interview',
         title: `Interview scheduled for ${interview.candidateName || 'Candidate'}`,
         date: new Date(interview.createdAt),
         icon: FaCalendarAlt,
         color: 'text-purple-500'
+      });
+    });
+
+    // Add recent expenses
+    expenses.slice(0, 2).forEach(expense => {
+      activities.push({
+        type: 'expense',
+        title: `Expense: ${expense.category} - ${expense.description?.substring(0, 30)}...`,
+        amount: expense.amount,
+        status: expense.status,
+        date: new Date(expense.createdAt),
+        icon: FaMoneyBillWave,
+        color: 'text-red-500'
       });
     });
 
@@ -233,6 +354,16 @@ const MainContentDash = () => {
 
   const getScheduledInterviews = () => {
     return dashboardData.interviews.filter(interview => interview.status === 'Scheduled').length;
+  };
+
+  const getTotalExpenses = () => {
+    return dashboardData.expenses.reduce((total, expense) => {
+      return total + parseFloat(expense.amount || 0);
+    }, 0);
+  };
+
+  const getPendingExpenses = () => {
+    return dashboardData.expenses.filter(expense => expense.status === 'Pending').length;
   };
 
   if (dashboardData.loading) {
@@ -283,7 +414,7 @@ const MainContentDash = () => {
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
           {[
             {
               title: "Total Companies",
@@ -325,6 +456,16 @@ const MainContentDash = () => {
               image: grafright,
               gradient: true,
               link:"/interview"
+            },
+            {
+              title: "Total Expenses",
+              value: `₹${getTotalExpenses().toLocaleString()}`,
+              icon: FaMoneyBillWave,
+              bgColor: "from-red-500 to-pink-500",
+              textColor: "text-white",
+              image: grafright,
+              gradient: true,
+              link:"/manage-expenses"
             },
           ].map((item, index) => (
             <div
@@ -446,22 +587,63 @@ const MainContentDash = () => {
                 <Bar dataKey="value" fill="#8884d8" />
               </BarChart>
             </ResponsiveContainer>
-              </div>
+          </div>
 
-          {/* Staff Activity Line Chart */}
+          {/* Expense Status Bar Chart */}
           <div className="bg-white p-6 rounded-xl shadow-lg">
-            <h3 className="text-lg font-semibold mb-4 font-serif text-gray-800">Staff Activity</h3>
+            <h3 className="text-lg font-semibold mb-4 font-serif text-gray-800">Expense Status</h3>
             <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={monthlyEarnings}>
+              <BarChart data={expenseStatusData}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="value" fill="#ff6b6b" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Expense Charts Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Expense Category Pie Chart */}
+          <div className="bg-white p-6 rounded-xl shadow-lg">
+            <h3 className="text-lg font-semibold mb-4 font-serif text-gray-800">Expense Categories</h3>
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={expenseCategoryData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#ff6b6b"
+                  dataKey="value"
+                >
+                  {expenseCategoryData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Monthly Expenses Line Chart */}
+          <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
+            <h3 className="text-lg font-semibold mb-4 font-serif text-gray-800">Monthly Expenses</h3>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={monthlyExpenses}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                 <XAxis dataKey="month" />
                 <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="earnings" stroke="#82ca9d" strokeWidth={3} />
+                <Tooltip formatter={(value) => [`₹${value.toLocaleString()}`, 'Amount']} />
+                <Line type="monotone" dataKey="amount" stroke="#ff6b6b" strokeWidth={3} />
               </LineChart>
             </ResponsiveContainer>
-                  </div>
-                </div>
+          </div>
+        </div>
 
         {/* Recent Activities and Quick Stats */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -481,7 +663,11 @@ const MainContentDash = () => {
                     </p>
                   </div>
                   {activity.amount && (
-                    <span className="text-green-600 font-semibold">${activity.amount}</span>
+                    <span className={`font-semibold ${
+                      activity.type === 'expense' ? 'text-red-600' : 'text-green-600'
+                    }`}>
+                      {activity.type === 'expense' ? '₹' : '$'}{activity.amount}
+                    </span>
                   )}
                 </div>
               ))}
@@ -525,6 +711,22 @@ const MainContentDash = () => {
                   {dashboardData.tasks.filter(task => task.status === 'Pending').length}
                     </span>
                   </div>
+
+              <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <FaMoneyBillWave className="text-red-500 text-xl" />
+                  <span className="font-medium">Pending Expenses</span>
+                  </div>
+                <span className="text-2xl font-bold text-red-600">{getPendingExpenses()}</span>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-indigo-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <FaMoneyBillWave className="text-indigo-500 text-xl" />
+                  <span className="font-medium">Total Expenses</span>
+                  </div>
+                <span className="text-2xl font-bold text-indigo-600">₹{getTotalExpenses().toLocaleString()}</span>
+              </div>
             </div>
           </div>
         </div>

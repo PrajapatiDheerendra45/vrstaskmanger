@@ -25,6 +25,9 @@ import CandidateTable from "../pages/admin/CandidateTable.jsx";
 import PaymentForm from "../pages/admin/PaymentForm.jsx";
 import PaymentTable from "../pages/admin/PaymentTable.jsx";
 import Collaborat from "../pages/admin/Collaborat.jsx";
+import Expensis from "../pages/admin/Expensis.jsx";
+import ManageExpensis from "../pages/admin/ManageExpensis.jsx";
+import EditExpense from "../pages/admin/EditExpense.jsx";
 
 const AdminRoutes = () => {
   const [auth] = useAuth();
@@ -51,6 +54,9 @@ const AdminRoutes = () => {
         <Route path="/get-candidate-data" element={<CandidateTable />} /> 
         <Route path="/payment-submision" element={<PaymentForm />} /> 
         <Route path="/payment" element={<PaymentTable />} /> 
+        <Route path="/add-expense" element={<Expensis />} /> 
+        <Route path="/manage-expenses" element={<ManageExpensis />} /> 
+        <Route path="/edit-expense/:id" element={<EditExpense />} /> 
 
         {/* <Route path="/manage-products" element={<ManageCourses />} />  */}
         {/* <Route path="/add-product" element={<AddCourseForm />} />  */}

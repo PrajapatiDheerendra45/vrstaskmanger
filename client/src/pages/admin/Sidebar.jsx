@@ -39,6 +39,8 @@ const Sidebar = () => {
     { path: "/admin/manage-event", icon: "fa-solid fa-calendar-week", label: "Manage Event" },
     { path: "/admin/payment-submision", icon: "fa-solid fa-calendar-week", label: "SubmitPayment " },
     { path: "/admin/payment", icon: "fa-solid fa-calendar-week", label: "Payment Submision" },
+    { path: "/admin/add-expense", icon: "fas fa-plus-circle", label: "Add Expense" },
+    { path: "/admin/manage-expenses", icon: "fas fa-chart-line", label: "Manage Expenses" },
     { path: "/admin/profile", icon: "fas fa-user", label: "Profile" },
  
   ];

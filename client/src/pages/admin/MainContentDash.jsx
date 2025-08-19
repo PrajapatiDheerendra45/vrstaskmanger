@@ -293,6 +293,7 @@ const MainContentDash = () => {
               textColor: "text-white",
               image: grafleft,
               gradient: true,
+              link:"/companiesData"
             },
             {
               title: "Total Tasks",
@@ -302,6 +303,8 @@ const MainContentDash = () => {
               textColor: "text-black",
               image: grafleft,
               gradient: false,
+
+              link:"/managetask"
             },
             {
               title: "Total Earnings",
@@ -311,6 +314,7 @@ const MainContentDash = () => {
               textColor: "text-black",
               image: grafleft,
               gradient: false,
+              link:"/payment"
             },
             {
               title: "Total Interviews",
@@ -320,6 +324,7 @@ const MainContentDash = () => {
               textColor: "text-white",
               image: grafright,
               gradient: true,
+              link:"/interview"
             },
           ].map((item, index) => (
             <div
@@ -354,7 +359,7 @@ const MainContentDash = () => {
                   <div className="text-center">
                     <p className="text-sm text-gray-600">Click to view details</p>
                     <button 
-                      onClick={() => navigate(`/admin/${item.title.toLowerCase().replace(' ', '')}`)}
+                      onClick={() => navigate(`/admin${item.link}`)}
                       className="mt-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
                     >
                       View All

@@ -1,13 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import axios from "axios";
+import { useParams, useNavigate } from "react-router-dom";
+
 const IT_DESIGNATIONS = [
   "Software Engineer",
   "Frontend Developer",
   "Backend Developer",
   "DevOps Engineer",
 ];
+
 const NON_IT_DESIGNATIONS = [
   "HR Manager",
   "Accountant",
@@ -18,7 +21,10 @@ const NON_IT_DESIGNATIONS = [
 const IT_DEPARTMENTS = ["Engineering", "Development", "QA", "Support"];
 const NON_IT_DEPARTMENTS = ["HR", "Finance", "Administration", "Sales"];
 
-const AddStaff = () => {
+const EditStaff = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -27,12 +33,53 @@ const AddStaff = () => {
     designation: "",
     department: "",
     joiningDate: null,
-    role: "0", // Set internally
+    role: "0",
     status: "active",
   });
 
   const [otherDesignation, setOtherDesignation] = useState("");
   const [otherDepartment, setOtherDepartment] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  // Fetch staff data on component mount
+  useEffect(() => {
+    const fetchStaffData = async () => {
+      try {
+        const response = await axios.get(`/api/v1/users/getusers/${id}`);
+        const userData = response.data.user;
+        
+        setFormData({
+          name: userData.name || "",
+          email: userData.email || "",
+          password: "", // Don't populate password for security
+          phone: userData.phone || "",
+          designation: userData.designation || "",
+          department: userData.department || "",
+          joiningDate: userData.joiningDate ? new Date(userData.joiningDate) : null,
+          role: userData.role?.toString() || "0",
+          status: userData.status || "active",
+        });
+
+        // Set other fields if designation/department is custom
+        if (![...IT_DESIGNATIONS, ...NON_IT_DESIGNATIONS].includes(userData.designation)) {
+          setOtherDesignation(userData.designation || "");
+        }
+        if (![...IT_DEPARTMENTS, ...NON_IT_DEPARTMENTS].includes(userData.department)) {
+          setOtherDepartment(userData.department || "");
+        }
+        
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching staff data:", error);
+        alert("Error loading staff data");
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchStaffData();
+    }
+  }, [id]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -45,10 +92,10 @@ const AddStaff = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
     const payload = {
       name: formData.name,
       email: formData.email,
-      password: formData.password,
       phone: formData.phone,
       designation:
         formData.designation === "Other"
@@ -57,40 +104,39 @@ const AddStaff = () => {
       department:
         formData.department === "Other" ? otherDepartment : formData.department,
       joiningDate: formData.joiningDate,
-      role: "0",
       status: formData.status,
     };
 
+    // Only include password if it's provided
+    if (formData.password) {
+      payload.password = formData.password;
+    }
+
     try {
-      console.log("payload", payload);
-      const res = await axios.post("/api/v1/users/register", payload);
-      console.log(res.data);
+      const res = await axios.put(`/api/v1/users/update/${id}`, payload);
+      
       if (res.data.status) {
-        alert(res.data.message);
-        setFormData({
-          name: "",
-          email: "",
-          password: "",
-          phone: "",
-          designation: "",
-          department: "",
-          joiningDate: "",
-          role: "0",
-          status: "active",
-        });
-        setOtherDesignation(""); // reset "Other" input
-        setOtherDepartment("");
+        alert("Staff updated successfully!");
+        navigate("/admin/staffs");
       }
     } catch (err) {
       console.error(err);
-      alert("Registration failed");
+      alert(err.response?.data?.message || "Update failed");
     }
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-3xl mx-auto p-6 bg-white shadow-md rounded-lg mt-10">
+        <div className="text-center">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto p-6 bg-white shadow-md rounded-lg mt-10">
       <h2 className="text-2xl font-semibold mb-6 text-gray-800">
-        Add New Staff
+        Edit Staff Member
       </h2>
 
       <form
@@ -127,15 +173,15 @@ const AddStaff = () => {
 
         <div>
           <label className="block text-sm font-medium text-gray-700">
-            Password
+            Password (leave blank to keep current)
           </label>
           <input
             type="password"
             name="password"
             value={formData.password}
             onChange={handleChange}
-            required
             className="mt-1 w-full px-4 py-2 border rounded-md"
+            placeholder="Enter new password or leave blank"
           />
         </div>
 
@@ -253,12 +299,19 @@ const AddStaff = () => {
           </select>
         </div>
 
-        <div className="md:col-span-2">
+        <div className="md:col-span-2 flex gap-4">
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
+            className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
           >
-            Add Staff
+            Update Staff
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate("/admin/staffs")}
+            className="flex-1 bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600"
+          >
+            Cancel
           </button>
         </div>
       </form>
@@ -266,4 +319,4 @@ const AddStaff = () => {
   );
 };
 
-export default AddStaff;
+export default EditStaff;

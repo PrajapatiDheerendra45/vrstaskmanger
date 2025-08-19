@@ -37,10 +37,10 @@ export const updatePayment = async (req, res) => {
     const updated = await Payment.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
     });
-    if (!updated) return res.status(404).json({ message: "Payment not found" });
-    res.status(200).json(updated);
+    if (!updated) return res.status(404).json({ status: false, message: "Payment not found" });
+    res.status(200).json({ status: true, message: "Payment updated successfully", data: updated });
   } catch (err) {
-    res.status(500).json({ message: "Error updating payment", error: err.message });
+    res.status(500).json({ status: false, message: "Error updating payment", error: err.message });
   }
 };
 
@@ -48,9 +48,9 @@ export const updatePayment = async (req, res) => {
 export const deletePayment = async (req, res) => {
   try {
     const deleted = await Payment.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ message: "Payment not found" });
-    res.status(200).json({ message: "Payment deleted successfully" });
+    if (!deleted) return res.status(404).json({ status: false, message: "Payment not found" });
+    res.status(200).json({ status: true, message: "Payment deleted successfully" });
   } catch (err) {
-    res.status(500).json({ message: "Error deleting payment", error: err.message });
+    res.status(500).json({ status: false, message: "Error deleting payment", error: err.message });
   }
 };

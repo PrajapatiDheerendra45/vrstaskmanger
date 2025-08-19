@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import graf1 from "../../assets/graf1.jpg";
 import graf2 from "../../assets/graf2.jpg";
 import grafleft from "../../assets/grafleft.jpg";
 import grafright from "../../assets/grafright.jpg";
 import React from "react";
-
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import {
   AreaChart,
@@ -14,133 +14,322 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  Legend,
 } from "recharts";
 import DashHeader from "./DashHeader";
+import { 
+  FaUsers, 
+  FaTasks, 
+  FaMoneyBillWave, 
+  FaCalendarAlt,
+  FaBuilding,
+  FaChartLine,
+  FaUserTie,
+  FaClock,
+  FaCheckCircle,
+  FaExclamationTriangle
+} from "react-icons/fa";
 
-const data = [
-  { name: "", value: 500 },
-  { name: "", value: 150 },
-  { name: "", value: 600 },
-  { name: "", value: 90 },
-  { name: "", value: 300 },
-  { name: "", value: 110 },
-  { name: "", value: 800 },
-  { name: "", value: 120 },
-  { name: "", value: 95 },
-  { name: "", value: 400 },
-  { name: "", value: 110 },
-  { name: "", value: 1100 },
-];
-
-const Card = ({ frontContent, backContent, bgImage }) => {
-  const [isFlipped, setIsFlipped] = useState(false);
-
-  return (
-    <div
-      className="relative w-full h-[150px] perspective"
-      onMouseEnter={() => setIsFlipped(true)}
-      onMouseLeave={() => setIsFlipped(false)}
-    >
-      <div
-        className={`w-full h-full transition-transform duration-500 transform ${
-          isFlipped ? "rotate-y-180" : ""
-        }`}
-        style={{ transformStyle: "preserve-3d" }}
-      >
-        {/* Front Side */}
-        <div
-          className="absolute w-full h-full bg-gradient-to-r from-purple-500 to-blue-500 text-white p-6 rounded-lg shadow-md flex items-center justify-between"
-          style={{
-            backgroundImage: `linear-gradient(to right, rgba(128,0,128,0.7), rgba(0,0,255,0.7)), url(${bgImage})`,
-            backgroundPosition: "right center",
-            backgroundSize: "contain",
-            backgroundRepeat: "no-repeat",
-            backfaceVisibility: "hidden",
-          }}
-        >
-          {frontContent}
-        </div>
-
-        {/* Back Side */}
-        <div
-          className="absolute w-full h-full bg-white p-6 rounded-lg shadow-md flex items-center justify-center transform rotate-y-180"
-          style={{ backfaceVisibility: "hidden" }}
-        >
-          {backContent}
-        </div>
-      </div>
-    </div>
-  );
-};
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
 const MainContentDash = () => {
   let storedUser = localStorage.getItem("user");
-  const nevigate = useNavigate();
-
+  const navigate = useNavigate();
   let user = storedUser ? JSON.parse(storedUser) : null;
+
+  // State for dashboard data
+  const [dashboardData, setDashboardData] = useState({
+    companies: [],
+    tasks: [],
+    payments: [],
+    interviews: [],
+    staff: [],
+    loading: true,
+    error: null
+  });
+
+  const [monthlyEarnings, setMonthlyEarnings] = useState([]);
+  const [taskStatusData, setTaskStatusData] = useState([]);
+  const [interviewStatusData, setInterviewStatusData] = useState([]);
+  const [recentActivities, setRecentActivities] = useState([]);
+
+  // Fetch all dashboard data
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setDashboardData(prev => ({ ...prev, loading: true, error: null }));
+
+        // Fetch all data in parallel
+        const [companiesRes, tasksRes, paymentsRes, interviewsRes, staffRes] = await Promise.all([
+          axios.get('/api/v1/company/get'),
+          axios.get('/api/v1/task/get'),
+          axios.get('/api/v1/payment/get'),
+          axios.get('/api/v1/interview/get'),
+          axios.get('/api/v1/users/getusers')
+        ]);
+
+        // Handle different API response structures
+        const companies = companiesRes.data || []; // companies API returns array directly
+        const tasks = tasksRes.data || []; // tasks API returns array directly
+        const payments = paymentsRes.data || []; // payments API returns array directly
+        const interviews = interviewsRes.data.interviews || []; // interviews API returns {success, interviews}
+        const staff = staffRes.data.users || []; // auth API returns {status, users}
+
+        setDashboardData({
+          companies,
+          tasks,
+          payments,
+          interviews,
+          staff,
+          loading: false,
+          error: null
+        });
+
+        // Process data for charts
+        processChartData(payments, tasks, interviews);
+
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        setDashboardData(prev => ({ 
+          ...prev, 
+          loading: false, 
+          error: 'Failed to load dashboard data' 
+        }));
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  const processChartData = (payments, tasks, interviews) => {
+    // Process monthly earnings data
+    const monthlyData = processMonthlyEarnings(payments);
+    setMonthlyEarnings(monthlyData);
+
+    // Process task status data
+    const taskStatus = processTaskStatus(tasks);
+    setTaskStatusData(taskStatus);
+
+    // Process interview status data
+    const interviewStatus = processInterviewStatus(interviews);
+    setInterviewStatusData(interviewStatus);
+
+    // Process recent activities
+    const activities = processRecentActivities(payments, tasks, interviews);
+    setRecentActivities(activities);
+  };
+
+  const processMonthlyEarnings = (payments) => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthlyEarnings = months.map(month => ({ month, earnings: 0 }));
+
+    payments.forEach(payment => {
+      if (payment.createdAt) {
+        const date = new Date(payment.createdAt);
+        const monthIndex = date.getMonth();
+        monthlyEarnings[monthIndex].earnings += parseFloat(payment.amount || 0);
+      }
+    });
+
+    return monthlyEarnings;
+  };
+
+  const processTaskStatus = (tasks) => {
+    const statusCount = {
+      'Pending': 0,
+      'In Progress': 0,
+      'Completed': 0,
+      'Cancelled': 0
+    };
+
+    tasks.forEach(task => {
+      const status = task.status || 'Pending';
+      statusCount[status] = (statusCount[status] || 0) + 1;
+    });
+
+    return Object.entries(statusCount).map(([name, value]) => ({ name, value }));
+  };
+
+  const processInterviewStatus = (interviews) => {
+    const statusCount = {
+      'Scheduled': 0,
+      'Completed': 0,
+      'Cancelled': 0,
+      'Pending': 0
+    };
+
+    interviews.forEach(interview => {
+      const status = interview.status || 'Scheduled';
+      statusCount[status] = (statusCount[status] || 0) + 1;
+    });
+
+    return Object.entries(statusCount).map(([name, value]) => ({ name, value }));
+  };
+
+  const processRecentActivities = (payments, tasks, interviews) => {
+    const activities = [];
+
+    // Add recent payments
+    payments.slice(0, 5).forEach(payment => {
+      activities.push({
+        type: 'payment',
+        title: `Payment received from ${payment.companyName || 'Company'}`,
+        amount: payment.amount,
+        date: new Date(payment.createdAt),
+        icon: FaMoneyBillWave,
+        color: 'text-green-500'
+      });
+    });
+
+    // Add recent tasks
+    tasks.slice(0, 5).forEach(task => {
+      activities.push({
+        type: 'task',
+        title: `Task: ${task.title}`,
+        status: task.status,
+        date: new Date(task.createdAt),
+        icon: FaTasks,
+        color: 'text-blue-500'
+      });
+    });
+
+    // Add recent interviews
+    interviews.slice(0, 5).forEach(interview => {
+      activities.push({
+        type: 'interview',
+        title: `Interview scheduled for ${interview.candidateName || 'Candidate'}`,
+        date: new Date(interview.createdAt),
+        icon: FaCalendarAlt,
+        color: 'text-purple-500'
+      });
+    });
+
+    // Sort by date and return top 10
+    return activities
+      .sort((a, b) => b.date - a.date)
+      .slice(0, 10);
+  };
+
+  const getTotalEarnings = () => {
+    return dashboardData.payments.reduce((total, payment) => {
+      return total + parseFloat(payment.amount || 0);
+    }, 0);
+  };
+
+  const getActiveStaff = () => {
+    return dashboardData.staff.filter(staff => staff.status === 'active').length;
+  };
+
+  const getCompletedTasks = () => {
+    return dashboardData.tasks.filter(task => task.status === 'Completed').length;
+  };
+
+  const getScheduledInterviews = () => {
+    return dashboardData.interviews.filter(interview => interview.status === 'Scheduled').length;
+  };
+
+  if (dashboardData.loading) {
+  return (
+      <div className="flex-1 p-6 overflow-auto bg-green-50 mt-16">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+      </div>
+    </div>
+  );
+  }
+
+  if (dashboardData.error) {
+    return (
+      <div className="flex-1 p-6 overflow-auto bg-green-50 mt-16">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          {dashboardData.error}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
       <DashHeader className="mb-16" />
-      <div className="flex-1 p-6 overflow-auto bg-green-50 mt-16">
-        <div className="flex flex-col lg:flex-row justify-between items-center">
-          <h2 className="text-3xl font-extrabold font-serif text-red-500 hover:text-red-200">
-            <span className="text-sm">
-              Hi
-              {user?.data?.firstName && user?.data?.lastName
+      <div className="flex-1 p-6 overflow-auto bg-gradient-to-br from-green-50 to-blue-50 mt-16">
+        {/* Header Section */}
+        <div className="flex flex-col lg:flex-row justify-between items-center mb-8">
+          <div>
+            <h2 className="text-4xl font-extrabold font-serif text-gray-800 hover:text-blue-600 transition-colors">
+              <span className="text-sm text-gray-600">
+                Hi {user?.data?.firstName && user?.data?.lastName
                 ? `${user?.data?.firstName} ${user?.data?.lastName}`
                 : " Guest"}
             </span>
-            <br /> Welcome to LMS!
+              <br /> Welcome to VRS MAN POWER Dashboard!
           </h2>
-          <div className="">
+            <p className="text-gray-600 mt-2">Here's what's happening today</p>
+          </div>
+          <div className="relative">
             <input
-              className="bg-white rounded py-2 px-12 pl-10 font-serif font-bold"
-              placeholder="Search"
+              className="bg-white rounded-lg py-3 px-12 pl-10 font-serif font-medium shadow-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              placeholder="Search..."
               type="text"
             />
-            <i className="fas fa-search absolute left-3 top-3 text-gray-500"></i>
+            <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6 font-serif">
+
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {[
             {
-              title: "Total Company",
-              value: "$540.50",
+              title: "Total Companies",
+              value: dashboardData.companies.length,
+              icon: FaBuilding,
+              bgColor: "from-purple-500 to-blue-500",
+              textColor: "text-white",
               image: grafleft,
               gradient: true,
             },
             {
-              title: "Total task",
-              value: "$682.5",
-              image: graf1,
+              title: "Total Tasks",
+              value: dashboardData.tasks.length,
+              icon: FaTasks,
+              bgColor: "from-green-500 to-teal-500",
+              textColor: "text-black",
+              image: grafleft,
               gradient: false,
             },
             {
-              title: "Earnings",
-              value: "$350.40",
-              image: graf2,
+              title: "Total Earnings",
+              value: `₹${getTotalEarnings().toLocaleString()}`,
+              icon: FaMoneyBillWave,
+              bgColor: "from-yellow-500 to-orange-500",
+              textColor: "text-black",
+              image: grafleft,
               gradient: false,
             },
             {
-              title: "Interview",
-              value: "$540.50",
+              title: "Total Interviews",
+              value: dashboardData.interviews.length,
+              icon: FaCalendarAlt,
+              bgColor: "from-pink-500 to-red-500",
+              textColor: "text-white",
               image: grafright,
               gradient: true,
             },
           ].map((item, index) => (
             <div
               key={index}
-              className="w-full h-[160px] [perspective:1000px] group relative"
+              className="w-full h-[180px] [perspective:1000px] group relative"
             >
               <div className="relative w-full h-full transition-transform duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
                 {/* Front Side */}
                 <div
-                  className={`absolute w-full h-full rounded-lg shadow-md p-6 flex flex-col justify-center items-start [backface-visibility:hidden] ${
-                    item.gradient
-                      ? "bg-gradient-to-r from-purple-500 to-blue-500 text-white"
-                      : "bg-white text-gray-900"
-                  }`}
+                  className={`absolute w-full h-full rounded-xl shadow-lg p-6 flex flex-col justify-center items-start [backface-visibility:hidden] bg-gradient-to-r ${item.bgColor} ${item.textColor}`}
                   style={{
                     backgroundImage: item.gradient
                       ? `linear-gradient(to right, rgba(128,0,128,0.7), rgba(0,0,255,0.7)), url(${item.image})`
@@ -150,442 +339,187 @@ const MainContentDash = () => {
                     backgroundRepeat: "no-repeat",
                   }}
                 >
-                  <h3 className="text-2xl font-bold">{item.title}</h3>
-                  <p className="text-lg">{item.value}</p>
+                  <div className="flex items-center justify-between w-full">
+                    <div>
+                      <h3 className="text-xl font-bold mb-2">{item.title}</h3>
+                      <p className="text-3xl font-bold">{item.value}</p>
+                    </div>
+                    <item.icon className="text-4xl opacity-80" />
+                  </div>
                 </div>
 
                 {/* Back Side */}
-                <div className="absolute w-full h-full rounded-lg shadow-md p-6 flex flex-col justify-center items-center bg-gray-100 text-gray-800 [transform:rotateY(180deg)] [backface-visibility:hidden]">
-                  <h3 className="text-xl font-bold">More Info</h3>
-                  <p className="text-sm text-center">Details coming soon...</p>
+                <div className="absolute w-full h-full rounded-xl shadow-lg p-6 flex flex-col justify-center items-center bg-white text-gray-800 [transform:rotateY(180deg)] [backface-visibility:hidden]">
+                  <h3 className="text-xl font-bold mb-2">Quick Stats</h3>
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600">Click to view details</p>
+                    <button 
+                      onClick={() => navigate(`/admin/${item.title.toLowerCase().replace(' ', '')}`)}
+                      className="mt-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                    >
+                      View All
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           ))}
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-6 mt-6">
-          {/* graf section start */}
-          <div className="bg-white p-6 rounded-xl lg:w-3/4 shadow-lg">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold font-serif">
-                Balance{" "}
-                <span className="text-green-500 font-serif">● On track</span>
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Monthly Earnings Chart */}
+          <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold font-serif text-gray-800">
+                Monthly Earnings <span className="text-green-500">● Trending Up</span>
               </h2>
-              <span className="text-gray-500 font-serif">Monthly ▼</span>
-            </div>
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="bg-gray-100 p-4 rounded-lg text-center">
-                <p className="text-sm text-gray-500 font-serif">Saves</p>
-                <p className="text-2xl font-bold">
-                  43.50% <span className="text-green-500 text-sm">+2.45%</span>
-                </p>
-              </div>
-              <div className="bg-gray-100 p-4 rounded-lg text-center">
-                <p className="text-sm text-gray-500 font-serif">Balance</p>
-                <p className="text-2xl font-bold">
-                  $52,422 <span className="text-red-500 text-sm">-4.75%</span>
-                </p>
+              <div className="flex items-center space-x-2">
+                <span className="text-gray-500 font-serif">2024</span>
+                <FaChartLine className="text-blue-500" />
               </div>
             </div>
-            <ResponsiveContainer width="100%" height={200}>
-              <AreaChart
-                data={data}
-                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-              >
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={monthlyEarnings}>
                 <defs>
-                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="colorEarnings" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
                     <stop offset="95%" stopColor="#8884d8" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                <XAxis dataKey="name" tick={false} axisLine={false} />
-                <YAxis hide />
-                <Tooltip />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, 'Earnings']} />
                 <Area
                   type="monotone"
-                  dataKey="value"
+                  dataKey="earnings"
                   stroke="#8884d8"
                   fillOpacity={1}
-                  fill="url(#colorValue)"
+                  fill="url(#colorEarnings)"
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
 
-          {/* graf section end */}
+          {/* Task Status Pie Chart */}
+          <div className="bg-white p-6 rounded-xl shadow-lg">
+            <h3 className="text-lg font-semibold mb-4 font-serif text-gray-800">Task Status Distribution</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={taskStatusData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {taskStatusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+                  </div>
+                </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-md lg:w-1/4 overflow-y-auto h-98 ">
-            <h3 className="text-lg font-bold fixed relative  top-0 font-serif">
-              User Transfers
-            </h3>
-            <div className="mt-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Alex Manda"
-                    className="rounded-full w-10 h-10"
-                    height="100"
-                    src="https://storage.googleapis.com/a1aa/image/i_NTVKpdNl_HqoGmBr8umfaPfBSDuqj6DXondtl2eDQ.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3">
-                    <p>From Alex Manda</p>
-                    <span className="text-gray-500 text-sm font-serif">
-                      Today, 16:36
-                    </span>
-                  </div>
-                </div>
-                <span className="text-green-500 font-serif">+$50</span>
-              </div>
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Laura Santos"
-                    className="rounded-full w-10 h-10"
-                    height="100"
-                    src="https://storage.googleapis.com/a1aa/image/AnnQ7YANRz1mACzCLf3D5cFZRtyVwfGsJFvdJrDSSOQ.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3">
-                    <p>To Laura Santos</p>
-                    <span className="text-gray-500 text-sm font-serif">
-                      Today, 08:49
-                    </span>
-                  </div>
-                </div>
-                <span className="text-red-500">-$27</span>
-              </div>
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Laura Santos"
-                    className="rounded-full w-10 h-10"
-                    height="100"
-                    src="https://storage.googleapis.com/a1aa/image/AnnQ7YANRz1mACzCLf3D5cFZRtyVwfGsJFvdJrDSSOQ.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3">
-                    <p>To Laura Santos</p>
-                    <span className="text-gray-500 text-sm font-serif">
-                      Today, 08:49
-                    </span>
-                  </div>
-                </div>
-                <span className="text-red-500 font-serif">-$27</span>
-              </div>
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Laura Santos"
-                    className="rounded-full w-10 h-10"
-                    height="100"
-                    src="https://storage.googleapis.com/a1aa/image/AnnQ7YANRz1mACzCLf3D5cFZRtyVwfGsJFvdJrDSSOQ.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3">
-                    <p>To Laura Santos</p>
-                    <span className="text-gray-500 text-sm font-serif">
-                      Today, 08:49
-                    </span>
-                  </div>
-                </div>
-                <span className="text-red-500 font-serif">-$27</span>
-              </div>
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Laura Santos"
-                    className="rounded-full w-10 h-10"
-                    height="100"
-                    src="https://storage.googleapis.com/a1aa/image/AnnQ7YANRz1mACzCLf3D5cFZRtyVwfGsJFvdJrDSSOQ.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3">
-                    <p>To Laura Santos</p>
-                    <span className="text-gray-500 text-sm font-serif">
-                      Today, 08:49
-                    </span>
-                  </div>
-                </div>
-                <span className="text-red-500 font-serif">-$27</span>
-              </div>
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Laura Santos"
-                    className="rounded-full w-10 h-10"
-                    height="100"
-                    src="https://storage.googleapis.com/a1aa/image/AnnQ7YANRz1mACzCLf3D5cFZRtyVwfGsJFvdJrDSSOQ.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3">
-                    <p>To Laura Santos</p>
-                    <span className="text-gray-500 text-sm font-serif">
-                      Today, 08:49
-                    </span>
-                  </div>
-                </div>
-                <span className="text-red-500 font-serif">-$27</span>
-              </div>
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Laura Santos"
-                    className="rounded-full w-10 h-10"
-                    height="100"
-                    src="https://storage.googleapis.com/a1aa/image/AnnQ7YANRz1mACzCLf3D5cFZRtyVwfGsJFvdJrDSSOQ.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3">
-                    <p>To Laura Santos</p>
-                    <span className="text-gray-500 text-sm font-serif">
-                      Today, 08:49
-                    </span>
-                  </div>
-                </div>
-                <span className="text-red-500 font-serif">-$27</span>
-              </div>
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Laura Santos"
-                    className="rounded-full w-10 h-10"
-                    height="100"
-                    src="https://storage.googleapis.com/a1aa/image/AnnQ7YANRz1mACzCLf3D5cFZRtyVwfGsJFvdJrDSSOQ.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3">
-                    <p>To Laura Santos</p>
-                    <span className="text-gray-500 text-sm font-serif">
-                      Today, 08:49
-                    </span>
-                  </div>
-                </div>
-                <span className="text-red-500 font-serif">-$27</span>
+        {/* Additional Charts Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Interview Status Bar Chart */}
+          <div className="bg-white p-6 rounded-xl shadow-lg">
+            <h3 className="text-lg font-semibold mb-4 font-serif text-gray-800">Interview Status</h3>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={interviewStatusData}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="value" fill="#8884d8" />
+              </BarChart>
+            </ResponsiveContainer>
               </div>
 
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Laura Santos"
-                    className="rounded-full w-10 h-10"
-                    height="100"
-                    src="https://storage.googleapis.com/a1aa/image/AnnQ7YANRz1mACzCLf3D5cFZRtyVwfGsJFvdJrDSSOQ.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3">
-                    <p>To Laura Santos</p>
-                    <span className="text-gray-500 text-sm font-srif">
-                      Today, 08:49
-                    </span>
+          {/* Staff Activity Line Chart */}
+          <div className="bg-white p-6 rounded-xl shadow-lg">
+            <h3 className="text-lg font-semibold mb-4 font-serif text-gray-800">Staff Activity</h3>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={monthlyEarnings}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="earnings" stroke="#82ca9d" strokeWidth={3} />
+              </LineChart>
+            </ResponsiveContainer>
                   </div>
                 </div>
-                <span className="text-red-500 font-serif">-$27</span>
+
+        {/* Recent Activities and Quick Stats */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Recent Activities */}
+          <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
+            <h3 className="text-lg font-semibold mb-4 font-serif text-gray-800">Recent Activities</h3>
+            <div className="space-y-4 max-h-96 overflow-y-auto">
+              {recentActivities.map((activity, index) => (
+                <div key={index} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+                  <div className={`p-2 rounded-full ${activity.color} bg-opacity-10`}>
+                    <activity.icon className="text-lg" />
               </div>
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Laura Santos"
-                    className="rounded-full w-10 h-10"
-                    height="100"
-                    src="https://storage.googleapis.com/a1aa/image/AnnQ7YANRz1mACzCLf3D5cFZRtyVwfGsJFvdJrDSSOQ.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3 font-serif">
-                    <p>To Laura Santos</p>
-                    <span className="text-gray-500 text-sm font-serif">
-                      Today, 08:49
-                    </span>
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-800">{activity.title}</p>
+                    <p className="text-sm text-gray-500">
+                      {activity.date.toLocaleDateString()} at {activity.date.toLocaleTimeString()}
+                    </p>
+                  </div>
+                  {activity.amount && (
+                    <span className="text-green-600 font-semibold">${activity.amount}</span>
+                  )}
+                </div>
+              ))}
                   </div>
                 </div>
-                <span className="text-red-500 font-serif">-$27</span>
+
+          {/* Quick Stats */}
+          <div className="bg-white p-6 rounded-xl shadow-lg">
+            <h3 className="text-lg font-semibold mb-4 font-serif text-gray-800">Quick Stats</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <FaUserTie className="text-blue-500 text-xl" />
+                  <span className="font-medium">Active Staff</span>
               </div>
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Laura Santos"
-                    className="rounded-full w-10 h-10"
-                    height="100"
-                    src="https://storage.googleapis.com/a1aa/image/AnnQ7YANRz1mACzCLf3D5cFZRtyVwfGsJFvdJrDSSOQ.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3">
-                    <p>To Laura Santos</p>
-                    <span className="text-gray-500 text-sm font-serif">
-                      Today, 08:49
-                    </span>
-                  </div>
-                </div>
-                <span className="text-red-500 font-serif">-$27</span>
+                <span className="text-2xl font-bold text-blue-600">{getActiveStaff()}</span>
               </div>
 
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Laura Santos"
-                    className="rounded-full w-10 h-10"
-                    height="100"
-                    src="https://storage.googleapis.com/a1aa/image/AnnQ7YANRz1mACzCLf3D5cFZRtyVwfGsJFvdJrDSSOQ.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3">
-                    <p>To Laura Santos</p>
-                    <span className="text-gray-500 text-sm font-serif">
-                      Today, 08:49
-                    </span>
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <FaCheckCircle className="text-green-500 text-xl" />
+                  <span className="font-medium">Completed Tasks</span>
                   </div>
-                </div>
-                <span className="text-red-500">-$27</span>
+                <span className="text-2xl font-bold text-green-600">{getCompletedTasks()}</span>
               </div>
 
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Laura Santos"
-                    className="rounded-full w-10 h-10"
-                    height="100"
-                    src="https://storage.googleapis.com/a1aa/image/AnnQ7YANRz1mACzCLf3D5cFZRtyVwfGsJFvdJrDSSOQ.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3">
-                    <p>To Laura Santos</p>
-                    <span className="text-gray-500 text-sm font-serif">
-                      Today, 08:49
-                    </span>
+              <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <FaClock className="text-purple-500 text-xl" />
+                  <span className="font-medium">Scheduled Interviews</span>
                   </div>
-                </div>
-                <span className="text-red-500 font-serif">-$27</span>
+                <span className="text-2xl font-bold text-purple-600">{getScheduledInterviews()}</span>
               </div>
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Laura Santos"
-                    className="rounded-full w-10 h-10"
-                    height="100"
-                    src="https://storage.googleapis.com/a1aa/image/AnnQ7YANRz1mACzCLf3D5cFZRtyVwfGsJFvdJrDSSOQ.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3">
-                    <p>To Laura Santos</p>
-                    <span className="text-gray-500 text-sm font-serif">
-                      Today, 08:49
-                    </span>
-                  </div>
-                </div>
-                <span className="text-red-500 font-serif">-$27</span>
-              </div>
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Jadon S."
-                    className="rounded-full w-10 h-10"
-                    height="100"
-                    src="https://storage.googleapis.com/a1aa/image/6u0IS57KQItJC50-azCw1-dvsSxoR7mk9_UxvfSF7fM.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3">
-                    <p>From Jadon S.</p>
-                    <span className="text-gray-500 text-sm font-serif">
-                      Yesterday, 14:36
-                    </span>
-                  </div>
-                </div>
-                <span className="text-green-500 font-serif">+$157</span>
-              </div>
-              <a className="text-blue-500 mt-4 block text-right" href="#">
-                View all
-              </a>
-            </div>
-          </div>
-        </div>
 
-        <div class="flex flex-col lg:flex-row gap-4 mt-5">
-          {/* <!-- Left Section --> */}
-          <div class="bg-white rounded-lg shadow-lg p-6 lg:w-1/3 mb-4 lg:mb-0">
-            <div class="bg-purple-500 text-white rounded-lg p-4 mb-6">
-              <div class="flex justify-between items-center">
-                <div>
-                  <p class="text-sm font-serif font-serif">Credit Balance</p>
-                  <p class="text-3xl font-bold font-serif">$25,215</p>
-                </div>
-                <i class="fas fa-exchange-alt text-2xl"></i>
-              </div>
-            </div>
-            <div>
-              <h2 class="text-lg font-semibold mb-4 font-serif">Recent</h2>
-              <div class="flex items-center mb-4">
-                <img
-                  alt="Icon of a building"
-                  class="w-10 h-10 rounded-full mr-4"
-                  height="100"
-                  src="https://storage.googleapis.com/a1aa/image/kGPJU_NwVDanWaBTj_EF3YuuhsUtMKYqBwRiRRyv8eE.jpg"
-                  width="100"
-                />
-                <div class="flex-1">
-                  <p class="text-sm font-semibold font-serif">
-                    Bill &amp; Taxes
-                  </p>
-                  <p class="text-xs text-gray-500 font-serif">Today, 16:36</p>
-                </div>
-                <p class="text-red-500 font-semibold font-serif">-$154.50</p>
-              </div>
-              <div class="flex items-center mb-4">
-                <img
-                  alt="Icon of a car"
-                  class="w-10 h-10 rounded-full mr-4"
-                  height="100"
-                  src="https://storage.googleapis.com/a1aa/image/O31pXsf8ns32vKEK5QjmMuoynSEBXIS_kwSlFmlDfXQ.jpg"
-                  width="100"
-                />
-                <div class="flex-1">
-                  <p class="text-sm font-semibold font-serif">Car Energy</p>
-                  <p class="text-xs text-gray-500 font-serif">23 Jun, 13:06</p>
-                </div>
-                <p class="text-red-500 font-semibold font-serif">-$40.50</p>
-              </div>
-              <div class="flex items-center">
-                <img
-                  alt="Icon of a book"
-                  class="w-10 h-10 rounded-full mr-4"
-                  height="100"
-                  src="https://storage.googleapis.com/a1aa/image/1REDMg0QAjBoBJVRbf6Rl-l13kghDxC_MzQYIwV7Adg.jpg"
-                  width="100"
-                />
-                <div class="flex-1">
-                  <p class="text-sm font-semibold font-serif">Design Course</p>
-                  <p class="text-xs text-gray-500 font-serif">21 Jun, 19:04</p>
-                </div>
-                <p class="text-red-500 font-semibold font-serif">-$70.00</p>
-              </div>
-            </div>
-          </div>
-          {/* <!-- Right Section --> */}
-          <div class="bg-white rounded-lg shadow-lg p-6 lg:w-2/3 flex flex-col lg:flex-row items-center">
-            <div class="lg:w-1/2 mb-4 lg:mb-0 lg:mr-4">
-              <h2 class="text-2xl font-bold mb-2 font-serif">
-                Try Venus for free now!
-              </h2>
-              <p class="text-gray-600 mb-4 font-serif">
-                Enter in this creative world. Venus is the best product for your
-                business.
-              </p>
-              <div class="flex items-center font-serif">
-                <button class="bg-purple-600 text-white px-4 py-2 rounded-lg mr-4">
-                  Try for free
-                </button>
-                <button class="text-gray-600 font-serif">Skip</button>
-              </div>
-            </div>
-            <div class="lg:w-1/2">
-              <img
-                alt="Various mobile screens showcasing the Venus app"
-                class="rounded-lg"
-                height="400"
-                src="https://storage.googleapis.com/a1aa/image/0Gg-TnBnQMKRVrUF4wqliIUMBcgnosRScgOFhcCRBqc.jpg"
-                width="400"
-              />
+              <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <FaExclamationTriangle className="text-yellow-500 text-xl" />
+                  <span className="font-medium">Pending Tasks</span>
+                  </div>
+                <span className="text-2xl font-bold text-yellow-600">
+                  {dashboardData.tasks.filter(task => task.status === 'Pending').length}
+                    </span>
+                  </div>
             </div>
           </div>
         </div>

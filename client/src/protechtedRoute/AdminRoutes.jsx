@@ -16,6 +16,7 @@ import Logout from "../auth/Logout.jsx";
 
 import AddStaff from "../pages/admin/AddStaff.jsx";
 import StaffTable from "../pages/admin/StaffTable.jsx";
+import EditStaff from "../pages/admin/EditStaff.jsx";
 import CompanyTable from "../pages/admin/CompaniesData.jsx";
 import AssignTask from "../pages/admin/AllotTask.jsx";
 import GetTaskTable from "../pages/admin/ManageTask.jsx";
@@ -41,7 +42,8 @@ const AdminRoutes = () => {
         <Route path="/" element={<MainContentDash />} />
         {/* <Route path="/products" element={<Courses />} />  */}
         <Route path="/add-user" element={<AddStaff />} /> 
-        <Route path="/staffs" element={<StaffTable />} /> 
+        <Route path="/staffs" element={<StaffTable />} />
+        <Route path="/edit-staff/:id" element={<EditStaff />} /> 
         <Route path="/companiesData" element={<CompanyTable />} /> 
         <Route path="/allottask" element={<AssignTask />} /> 
         <Route path="/managetask" element={<GetTaskTable />} /> 

@@ -46,6 +46,29 @@ const userSchema = new mongoose.Schema(
       default: 1,
       required: false,
     },
+    status: {
+      type: String,
+      enum: ['active', 'inactive'],
+      default: 'active',
+    },
+    // Password reset fields
+    resetPasswordToken: {
+      type: String,
+      default: undefined,
+    },
+    resetPasswordExpires: {
+      type: Date,
+      default: undefined,
+    },
+    // Google OAuth fields
+    googleId: {
+      type: String,
+      default: undefined,
+    },
+    profilePicture: {
+      type: String,
+      default: undefined,
+    },
   },
   { timestamps: true }
 );

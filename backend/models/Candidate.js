@@ -7,7 +7,8 @@ const candidateSchema = new mongoose.Schema(
     phone: { type: String, required: true },
     position: { type: String, required: true },
     experience: { type: String },
-    skills: { type: String },
+    location: { type: String, required: true },
+    comments: { type: String },
     resume: { type: String },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,

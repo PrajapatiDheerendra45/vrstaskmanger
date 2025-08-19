@@ -3,7 +3,7 @@ import Candidate from '../models/Candidate.js';
 // ✅ Create Candidate
 export const createCandidate = async (req, res) => {
   try {
-    const { fullName, email, phone, experience, skills ,createdBy,position} = req.body;
+    const { fullName, email, phone, experience, comments, createdBy, position, location } = req.body;
     const resumePath = req.file ? req.file.path : '';
 
     const candidate = await Candidate.create({
@@ -12,7 +12,8 @@ export const createCandidate = async (req, res) => {
       position,
       phone,
       experience,
-      skills,
+      location,
+      comments,
       resume: resumePath,
       createdBy,
     });
@@ -27,6 +28,17 @@ export const createCandidate = async (req, res) => {
 export const getAllCandidates = async (req, res) => {
   try {
     const candidates = await Candidate.find().sort({ createdAt: -1 });
+    res.status(200).json(candidates);
+  } catch (error) {
+    res.status(500).json({ message: 'Fetching candidates failed', error });
+  }
+};
+
+// ✅ Get Candidates by Logged-in User
+export const getCandidatesByUser = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const candidates = await Candidate.find({ createdBy: userId }).sort({ createdAt: -1 });
     res.status(200).json(candidates);
   } catch (error) {
     res.status(500).json({ message: 'Fetching candidates failed', error });
@@ -48,6 +60,7 @@ export const getCandidateById = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch candidates", error });
   }
 };
+
 export const getCandidateByIdParticular = async (req, res) => {
   try {
     const candidateId = req.params.id;
@@ -77,7 +90,7 @@ export const getCandidateByIdParticular = async (req, res) => {
 // ✅ Update Candidate
 export const updateCandidate = async (req, res) => {
   try {
-    const { fullName, email, phone, experience, skills,position } = req.body;
+    const { fullName, email, phone, experience, comments, position, location } = req.body;
     const resumePath = req.file ? req.file.path : undefined;
 
     const updateData = {
@@ -86,7 +99,8 @@ export const updateCandidate = async (req, res) => {
       position,
       phone,
       experience,
-      skills
+      location,
+      comments
     };
 
     if (resumePath) updateData.resume = resumePath;

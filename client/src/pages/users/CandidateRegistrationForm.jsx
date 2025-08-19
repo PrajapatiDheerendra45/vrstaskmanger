@@ -6,13 +6,16 @@ const CandidateRegistrationForm = () => {
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
-    position:"",
+    position: "",
     phone: "",
     experience: "",
-    skills: "",
+    location: "",
+    comments: "",
     resume: null,
   });
-const [hrList, setHrList] = useState([]);
+  const [hrList, setHrList] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
+
   const handleChange = (e) => {
     const { name, value, files } = e.target;
     if (name === "resume") {
@@ -21,15 +24,22 @@ const [hrList, setHrList] = useState([]);
       setFormData({ ...formData, [name]: value });
     }
   };
- useEffect(() => {
+
+  useEffect(() => {
     const fetchData = async () => {
       try {
-       
+        // Get current logged-in user
+        const user = JSON.parse(localStorage.getItem("auth"));
+        setCurrentUser(user?.user);
 
-        const hrRes = await axios.get("/api/v1/users/getusers");
-        setHrList(hrRes?.data?.users || []);
-
-     
+        // Get HR list (only show current user if they are HR)
+        if (user?.user?.role === 'hr' || user?.user?.role === 'admin') {
+          const hrRes = await axios.get("/api/v1/users/getusers");
+          setHrList(hrRes?.data?.users || []);
+        } else {
+          // For regular users, only show themselves
+          setHrList([user?.user]);
+        }
       } catch (err) {
         console.error("Fetch error:", err);
       }
@@ -37,6 +47,7 @@ const [hrList, setHrList] = useState([]);
 
     fetchData();
   }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -50,22 +61,24 @@ const [hrList, setHrList] = useState([]);
       payload.append("position", formData.position);
       payload.append("phone", formData.phone);
       payload.append("experience", formData.experience);
-      payload.append("skills", formData.skills);
+      payload.append("location", formData.location);
+      payload.append("comments", formData.comments);
       payload.append("resume", formData.resume);
       payload.append("createdBy", createdBy);
 
       const res = await axios.post("/api/v1/candidate/create", payload);
-    
+
       if (res.data.status) {
         alert(res.data.message);
 
         setFormData({
           fullName: "",
-          position:"",
+          position: "",
           email: "",
           phone: "",
           experience: "",
-          skills: "",
+          location: "",
+          comments: "",
           resume: null,
         });
       } else {
@@ -113,10 +126,11 @@ const [hrList, setHrList] = useState([]);
             className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
           />
         </div>
-          <div>
+
+        <div>
           <label className="block mb-1 text-sm font-medium text-gray-700">
-          Position
-          </label> 
+            Position
+          </label>
           <input
             type="text"
             name="position"
@@ -154,7 +168,23 @@ const [hrList, setHrList] = useState([]);
             min="0"
           />
         </div>
-         <div>
+
+        <div>
+          <label className="block mb-1 text-sm font-medium text-gray-700">
+            Location
+          </label>
+          <input
+            type="text"
+            name="location"
+            required
+            onChange={handleChange}
+            value={formData.location}
+            className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+            placeholder="e.g., Mumbai, Delhi, Bangalore"
+          />
+        </div>
+
+        <div>
           <label className="block text-sm font-medium mb-1">HR</label>
           <select
             name="hr"
@@ -174,15 +204,15 @@ const [hrList, setHrList] = useState([]);
 
         <div className="md:col-span-2">
           <label className="block mb-1 text-sm font-medium text-gray-700">
-            Skills
+            Comments
           </label>
           <textarea
-            name="skills"
+            name="comments"
             rows="3"
             onChange={handleChange}
-            value={formData.skills}
+            value={formData.comments}
             className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
-            placeholder="E.g., React, Node.js, SQL"
+            placeholder="Additional comments or notes about the candidate"
           />
         </div>
 

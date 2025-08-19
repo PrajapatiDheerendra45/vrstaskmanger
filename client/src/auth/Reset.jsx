@@ -1,152 +1,121 @@
-import React, { useState } from "react";
-import { FaEnvelope, FaKey, FaLock } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { FaEye, FaEyeSlash, FaLock } from "react-icons/fa";
+import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
-import logo from "../assets/images/imslogo.png";
-import Header from "../Component/Header";
-import Footer from "../Component/Footer";
+import logo from "../assets/logo.png";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import Loader from "../Component/Loader";
 
 const ResetPassword = () => {
-  const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
-  const [newPassword, setNewPassword] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
-  const [navigating, setNavigating] = useState(false); // Loader ke liye state
-  const handleResetPassword = async () => {
-    if (!email || !otp || !newPassword) {
-      toast.error("All fields are required!");
+  const { token } = useParams();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!password || !confirmPassword) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match");
       return;
     }
 
     setLoading(true);
 
     try {
-      const response = await axios.post(
-        "https://hola9.in/auth/resetpassword/",
-        {
-          email,
-          otp,
-          newPassword: newPassword,
-        }
-      );
+      const response = await axios.post("/api/v1/users/reset-password/", {
+        token: token,
+        newPassword: password,
+      });
 
-      if (response.data?.message) {
-        toast.success(response.data.message);
-        setNavigating(true);
-
+      if (response.data) {
+        toast.success("Password reset successfully!");
         setTimeout(() => {
           navigate("/login");
-        }, 3000);
-      } else {
-        toast.error("Something went wrong!");
+        }, 2000);
       }
-    } catch (err) {
-      toast.error(
-        err.response?.data?.message || "Server error! Please try again."
-      );
+    } catch (error) {
+      toast.error("Error resetting password. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <>
-      <Header />
-      <div className="flex h-screen bg-gradient-to-r from-purple-700 to-red-500">
-        {/* Left Section with Background Image */}
-        <div className="w-1/2 relative hidden lg:block">
-          <img
-            src="https://cdni.iconscout.com/illustration/premium/thumb/forgot-password-mobile-illustration-download-in-svg-png-gif-file-formats--security-access-lock-user-interface-pack-design-development-illustrations-6430775.png?f=webp"
-            alt="Background"
-            className="w-full h-full object-cover shadow opacity-80 hover:blur-sm blur-none transition duration-500"
-          />
-        </div>
+    <div className="flex h-screen bg-gradient-to-r from-purple-700 to-red-500">
+      <div className="w-full flex justify-center items-center p-4">
+        <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
+          <div className="flex justify-center mb-6">
+            <img src={logo} alt="Logo" className="w-58 h-24" />
+          </div>
 
-        {/* Right Section with Form */}
-        <div className="w-full lg:w-1/2 flex justify-center items-center p-2 py-16">
-          <div className="w-full max-w-md p-2 md:p-8 gap-5 bg-white rounded-lg shadow-lg">
-            {/* Logo */}
-            <div className="flex justify-center mb-6">
-              <img src={logo} alt="Logo" className="w-58 h-24" />
+          <h2 className="text-2xl font-semibold text-center mb-6">Reset Password</h2>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="relative">
+              <FaLock className="absolute left-3 top-3 text-gray-400" />
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="New Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full p-3 pl-10 pr-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+              <span
+                className="absolute right-3 top-3 cursor-pointer text-gray-600"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </span>
             </div>
-            {navigating ? (
-              <Loader className=" relative" />
-            ) : (
-              <div>
-                <h2 className="text-2xl mt-5 mb-5 font-semibold text-center">
-                  Reset Password
-                </h2>
 
-                {/* Email Input */}
-                <div className="relative mb-5">
-                  <FaEnvelope className="absolute left-3 top-3 text-gray-400" />
-                  <input
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full p-3 pl-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
+            <div className="relative">
+              <FaLock className="absolute left-3 top-3 text-gray-400" />
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                placeholder="Confirm New Password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full p-3 pl-10 pr-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+              <span
+                className="absolute right-3 top-3 cursor-pointer text-gray-600"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+              </span>
+            </div>
 
-                {/* OTP Input */}
-                <div className="relative mb-5">
-                  <FaKey className="absolute left-3 top-3 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Enter OTP"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    className="w-full p-3 pl-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-
-                {/* New Password Input */}
-                <div className="relative mb-5">
-                  <FaLock className="absolute left-3 top-3 text-gray-400" />
-                  <input
-                    type="password"
-                    placeholder="Enter new password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full p-3 pl-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Reset Button */}
             <button
-              onClick={handleResetPassword}
-              className={`w-full text-white p-3 rounded-md text-lg flex items-center justify-center transition ${
-                loading
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-red-500 hover:bg-red-600"
+              type="submit"
+              className={`w-full text-white p-3 rounded-md text-lg transition ${
+                loading ? "bg-gray-400 cursor-not-allowed" : "bg-red-500 hover:bg-red-600"
               }`}
               disabled={loading}
             >
-              {loading ? <Loader /> : "Reset Password"}
+              {loading ? "Resetting..." : "Reset Password"}
             </button>
+          </form>
 
-            <p className="text-center text-gray-600 mt-4">
-              Remembered your password?{" "}
-              <a href="/login" className="text-blue-500 hover:underline">
-                Log in
-              </a>
-            </p>
-          </div>
+          <p className="text-center text-gray-600 mt-4">
+            <a href="/login" className="text-blue-500 hover:underline">
+              Back to Login
+            </a>
+          </p>
         </div>
-        <ToastContainer />
       </div>
-      <Footer />
-    </>
+      <ToastContainer />
+    </div>
   );
 };
 

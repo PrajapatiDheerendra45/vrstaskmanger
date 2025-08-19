@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const taskSchema = new mongoose.Schema({
  staffId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Staff", // 👈 MUST match exactly the model name from mongoose.model("Staff", ...)
+    ref: "User", // Reference to User model
   },
   title: { type: String, required: true },
   description: String,

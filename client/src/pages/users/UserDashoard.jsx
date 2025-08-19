@@ -1,12 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import graf1 from "../../assets/graf1.jpg";
 import graf2 from "../../assets/graf2.jpg";
 import grafleft from "../../assets/grafleft.jpg";
 import grafright from "../../assets/grafright.jpg";
 import React from "react";
-import { CiLogout } from "react-icons/ci";
-import { FaBars, FaTimes } from "react-icons/fa";
-import { MdDashboard } from "react-icons/md";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import {
   AreaChart,
@@ -16,569 +14,510 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  Legend,
 } from "recharts";
 import UserDashHeader from "./UserDashHeader";
+import { 
+  FaUsers, 
+  FaTasks, 
+  FaCalendarAlt,
+  FaBuilding,
+  FaChartLine,
+  FaUserTie,
+  FaClock,
+  FaCheckCircle,
+  FaExclamationTriangle,
+  FaUserPlus,
+  FaBriefcase
+} from "react-icons/fa";
 
-
-const data = [
-  { name: "", value: 500 },
-  { name: "", value: 150 },
-  { name: "", value: 600 },
-  { name: "", value: 90 },
-  { name: "", value: 300 },
-  { name: "", value: 110 },
-  { name: "", value: 800 },
-  { name: "", value: 120 },
-  { name: "", value: 95 },
-  { name: "", value: 400 },
-  { name: "", value: 110 },
-  { name: "", value: 1100 },
-];
-
-
-const Card = ({ frontContent, backContent, bgImage }) => {
-  const [isFlipped, setIsFlipped] = useState(false);
-
-  return (
-    <div
-      className="relative w-full h-[150px] perspective"
-      onMouseEnter={() => setIsFlipped(true)}
-      onMouseLeave={() => setIsFlipped(false)}
-    >
-      <div
-        className={`w-full h-full transition-transform duration-500 transform ${
-          isFlipped ? "rotate-y-180" : ""
-        }`}
-        style={{ transformStyle: "preserve-3d" }}
-      >
-        {/* Front Side */}
-        <div
-          className="absolute w-full h-full bg-gradient-to-r from-purple-500 to-blue-500 text-white p-6 rounded-lg shadow-md flex items-center justify-between"
-          style={{
-            backgroundImage: `linear-gradient(to right, rgba(128,0,128,0.7), rgba(0,0,255,0.7)), url(${bgImage})`,
-            backgroundPosition: "right center",
-            backgroundSize: "contain",
-            backgroundRepeat: "no-repeat",
-            backfaceVisibility: "hidden",
-          }}
-        >
-          {frontContent}
-        </div>
-
-        {/* Back Side */}
-        <div
-          className="absolute w-full h-full bg-white p-6 rounded-lg shadow-md flex items-center justify-center transform rotate-y-180"
-          style={{ backfaceVisibility: "hidden" }}
-        >
-          {backContent}
-        </div>
-      </div>
-    </div>
-  );
-};
-
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
 const UserDashoard = () => {
-  let storedUser = localStorage.getItem("user");
-  const nevigate = useNavigate();
 
-  // JSON parse karna zaroori hai
+  let storedUser = localStorage.getItem("auth");
+  
+  const navigate = useNavigate();
   let user = storedUser ? JSON.parse(storedUser) : null;
 
-  // if (user) {
-  //   const {
-  //     data: { firstName, lastName, email, role },
-  //   } = user;
-  // } else {
-  //   console.log("User data not found in localStorage");
-  // }
+  // State for dashboard data
+  const [dashboardData, setDashboardData] = useState({
+    companies: [],
+    candidates: [],
+    interviews: [],
+    tasks: [],
+    loading: true,
+    error: null
+  });
+
+  const [monthlyData, setMonthlyData] = useState([]);
+  const [taskStatusData, setTaskStatusData] = useState([]);
+  const [interviewStatusData, setInterviewStatusData] = useState([]);
+  const [recentActivities, setRecentActivities] = useState([]);
+
+  // Fetch user-specific dashboard data
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setDashboardData(prev => ({ ...prev, loading: true, error: null }));
+
+        const userId = user?.data?._id || user?.user?._id;
+        
+        if (!userId) {
+          setDashboardData(prev => ({ 
+            ...prev, 
+            loading: false, 
+            error: 'User not found' 
+          }));
+          return;
+        }
+
+        // Fetch user-specific dashboard stats
+        console.log("userId",userId)
+        const statsResponse = await axios.get(`/api/v1/users/dashboard-stats/${userId}`);
+        console.log("statsResponse",statsResponse)
+        if (statsResponse.data.status) {
+          const stats = statsResponse.data.stats;
+          
+          setDashboardData({
+            companies: stats.totalCompanies || 0,
+            candidates: stats.totalCandidates || 0,
+            interviews: stats.totalInterviews || 0,
+            tasks: stats.totalTasks || 0,
+            recentInterviews: stats.recentInterviews || [],
+            recentTasks: stats.recentTasks || [],
+            loading: false,
+            error: null
+          });
+
+          // Set chart data
+          setMonthlyData(stats.monthlyData || []);
+          setTaskStatusData(stats.taskStatusData || []);
+          setInterviewStatusData(stats.interviewStatusData || []);
+
+          // Process recent activities
+          const activities = processRecentActivities(stats.recentInterviews, stats.recentTasks);
+          setRecentActivities(activities);
+        } else {
+          setDashboardData(prev => ({ 
+            ...prev, 
+            loading: false, 
+            error: 'Failed to fetch dashboard data' 
+          }));
+        }
+
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        setDashboardData(prev => ({ 
+          ...prev, 
+          loading: false, 
+          error: 'Failed to load dashboard data' 
+        }));
+      }
+    };
+
+    if (user) {
+      fetchDashboardData();
+    }
+  },user, []);
+
+  const processRecentActivities = (recentInterviews, recentTasks) => {
+    const activities = [];
+
+    // Add recent interviews
+    if (recentInterviews && recentInterviews.length > 0) {
+      recentInterviews.forEach(interview => {
+        activities.push({
+          type: 'interview',
+          title: `Interview: ${interview.candidateId?.fullName || 'Candidate'}`,
+          status: interview.status,
+          date: new Date(interview.createdAt),
+          icon: FaCalendarAlt,
+          color: 'text-purple-500',
+          details: `${interview.interviewDate} at ${interview.interviewTime}`
+        });
+      });
+    }
+
+    // Add recent tasks
+    if (recentTasks && recentTasks.length > 0) {
+      recentTasks.forEach(task => {
+        activities.push({
+          type: 'task',
+          title: `Task: ${task.title}`,
+          status: task.status,
+          date: new Date(task.createdAt),
+          icon: FaTasks,
+          color: 'text-blue-500',
+          details: `Due: ${new Date(task.deadline).toLocaleDateString()}`
+        });
+      });
+    }
+
+    // Sort by date and return top 10
+    return activities
+      .sort((a, b) => b.date - a.date)
+      .slice(0, 10);
+  };
+
+  const getCompletedTasks = () => {
+    return taskStatusData.find(item => item.name === 'Completed')?.value || 0;
+  };
+
+  const getScheduledInterviews = () => {
+    return interviewStatusData.find(item => item.name === 'Scheduled')?.value || 0;
+  };
+
+  const getPendingTasks = () => {
+    return taskStatusData.find(item => item.name === 'Pending')?.value || 0;
+  };
+
+  if (dashboardData.loading) {
+    return (
+      <div className="flex-1 p-6 overflow-auto bg-gradient-to-br from-green-50 to-blue-50 mt-16">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (dashboardData.error) {
+    return (
+      <div className="flex-1 p-6 overflow-auto bg-gradient-to-br from-green-50 to-blue-50 mt-16">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg shadow-md">
+          <div className="flex items-center">
+            <i className="fas fa-exclamation-triangle mr-2"></i>
+            <span>{dashboardData.error}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <UserDashHeader className="mb-16" />
-      <div className="flex-1 p-6 overflow-auto bg-green-50 mt-16">
-        <div className="flex flex-col lg:flex-row justify-between items-center">
-          <h2 className="text-3xl font-extrabold font-serif hover:text-red-500">
-            <span className="text-sm">
-              Hi
-              {user?.data?.firstName && user?.data?.lastName
+      <div className="flex-1 p-6 overflow-auto bg-gradient-to-br from-green-50 to-blue-50 mt-16">
+        {/* Header Section */}
+        <div className="flex flex-col lg:flex-row justify-between items-center mb-8">
+          <div>
+            <h2 className="text-4xl font-extrabold font-serif text-gray-800 hover:text-blue-600 transition-colors">
+              <span className="text-sm text-gray-600">
+                Hi {user?.data?.firstName && user?.data?.lastName
                 ? `${user?.data?.firstName} ${user?.data?.lastName}`
-                : " Guest"}
-               
+                : user?.user?.name || " Guest"}
             </span>
-            <br /> Welcome to LMS!
+              <br /> Welcome to Your Dashboard!
           </h2>
-          <div className="">
+            <p className="text-gray-600 mt-2">Here's your performance overview</p>
+          </div>
+          <div className="relative">
             <input
-              className="bg-white rounded py-2 px-12 pl-10 font-serif font-bold"
-              placeholder="Search"
+              className="bg-white rounded-lg py-3 px-12 pl-10 font-serif font-medium shadow-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              placeholder="Search..."
               type="text"
             />
-            <i className="fas fa-search absolute left-3 top-3 text-gray-500"></i>
+            <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
           </div>
         </div>
 
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {[
+            {
+              title: "Total Companies",
+              value: dashboardData.companies,
+              icon: FaBuilding,
+              bgColor: "from-purple-500 to-blue-500",
+              textColor: "text-white",
+              image: grafleft,
+              gradient: true,
+              route: "companylisting",
+              link:"/getcompanylisting"
+              
+            },
+            {
+              title: "Total Candidates",
+              value: dashboardData.candidates,
+              icon: FaUserPlus,
+              bgColor: "from-green-500 to-teal-500",
+              textColor: "text-black",
+              image: graf1,
+              gradient: false,
+              route: "candidate-data",
+              link:"/get-candidate-data"
+            },
+            {
+              title: "Total Interviews",
+              value: dashboardData.interviews,
+              icon: FaCalendarAlt,
+              bgColor: "from-yellow-500 to-orange-500",
+              textColor: "text-black",
+              image: graf2,
+              gradient: false,
+              route: "interview",
+               link:"/interviewget"
 
+              
+            },
+            {
+              title: "Total Tasks",
+              value: dashboardData.tasks,
+              icon: FaTasks,
+              bgColor: "from-pink-500 to-red-500",
+              textColor: "text-white",
+              image: grafright,
+              gradient: true,
+              route: "allotedtask",
+              link:"/allotedtask"
+            },
+          ].map((item, index) => (
+            <div
+              key={index}
+              className="w-full h-[180px] [perspective:1000px] group relative"
+            >
+              <div className="relative w-full h-full transition-transform duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
+                {/* Front Side */}
+                <div
+                  className={`absolute w-full h-full rounded-xl shadow-lg p-6 flex flex-col justify-center items-start [backface-visibility:hidden] bg-gradient-to-r ${item.bgColor} ${item.textColor}`}
+                  style={{
+                    backgroundImage: item.gradient
+                      ? `linear-gradient(to right, rgba(128,0,128,0.7), rgba(0,0,255,0.7)), url(${item.image})`
+                      : `url(${item.image})`,
+                    backgroundPosition: "right center",
+                    backgroundSize: "contain",
+                    backgroundRepeat: "no-repeat",
+                  }}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <div>
+                      <h3 className="text-xl font-bold mb-2">{item.title}</h3>
+                      <p className="text-3xl font-bold">{item.value}</p>
+                    </div>
+                    <item.icon className="text-4xl opacity-80" />
+                  </div>
+                </div>
 
+                {/* Back Side */}
+                <div className="absolute w-full h-full rounded-xl shadow-lg p-6 flex flex-col justify-center items-center bg-white text-gray-800 [transform:rotateY(180deg)] [backface-visibility:hidden]">
+                  <h3 className="text-xl font-bold mb-2">Quick Actions</h3>
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600 mb-3">Click to view details</p>
+                    <button 
+                      onClick={() => navigate(`/${item.route}`)}
+                      className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                    >
+                      View All
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
 
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6 font-serif">
-  {[
-    {
-      title: "Total Courses",
-      value: "$540.50",
-      image: grafleft,
-      gradient: true,
-    },
-    {
-      title: "Spent this month",
-      value: "$682.5",
-      image: graf1,
-      gradient: false,
-    },
-    {
-      title: "Earnings",
-      value: "$350.40",
-      image: graf2,
-      gradient: false,
-    },
-    {
-      title: "Users",
-      value: "$540.50",
-      image: grafright,
-      gradient: true,
-    },
-  ].map((item, index) => (
-    <div key={index} className="group relative w-full h-[150px] perspective-1000">
-      {/* Front Side */}
-      <div
-        className={`absolute inset-0 ${
-          item.gradient
-            ? "bg-gradient-to-r from-purple-500 to-blue-500 text-white"
-            : "bg-white text-gray-900"
-        } p-6 rounded-lg shadow-md flex flex-col justify-center items-start transition-transform duration-500 group-hover:rotate-y-180`}
-        style={{
-          backgroundImage: item.gradient
-            ? `linear-gradient(to right, rgba(128,0,128,0.7), rgba(0,0,255,0.7)), url(${item.image})`
-            : `url(${item.image})`,
-          backgroundPosition: "right center",
-          backgroundSize: "contain",
-          backgroundRepeat: "no-repeat",
-          backfaceVisibility: "hidden",
-        }}
-      >
-        <h3 className="text-2xl font-bold">{item.title}</h3>
-        <p className="text-lg">{item.value}</p>
-      </div>
-
-      {/* Back Side */}
-      <div
-        className="absolute inset-0 bg-gray-200 text-gray-800 p-6 rounded-lg shadow-md flex flex-col justify-center items-center transform rotate-y-180 transition-transform duration-500 group-hover:rotate-y-0"
-        style={{
-          backfaceVisibility: "hidden",
-        }}
-      >
-        <h3 className="text-xl font-bold font-serif">More Info</h3>
-        <p className="text-sm font-serif">Detailed insights will be available soon!</p>
-      </div>
-    </div>
-  ))}
-</div>
-
-
-
-
-
-        
-        <div className="flex flex-col lg:flex-row gap-6 mt-6">
-          {/* graf section start */}
-          <div className="bg-white p-6 rounded-xl lg:w-3/4 shadow-lg">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold font-serif">
-                Balance <span className="text-green-500 font-serif">● On track</span>
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Monthly Progress Chart */}
+          <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold font-serif text-gray-800">
+                Monthly Progress <span className="text-green-500">● On Track</span>
               </h2>
-              <span className="text-gray-500 font-serif">Monthly ▼</span>
-            </div>
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="bg-gray-100 p-4 rounded-lg text-center">
-                <p className="text-sm text-gray-500 font-serif">Saves</p>
-                <p className="text-2xl font-bold">
-                  43.50% <span className="text-green-500 text-sm">+2.45%</span>
-                </p>
-              </div>
-              <div className="bg-gray-100 p-4 rounded-lg text-center">
-                <p className="text-sm text-gray-500 font-serif">Balance</p>
-                <p className="text-2xl font-bold">
-                  $52,422 <span className="text-red-500 text-sm">-4.75%</span>
-                </p>
+              <div className="flex items-center space-x-2">
+                <span className="text-gray-500 font-serif">2024</span>
+                <FaChartLine className="text-blue-500" />
               </div>
             </div>
-            <ResponsiveContainer width="100%" height={200}>
-              <AreaChart
-                data={data}
-                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-              >
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={monthlyData}>
                 <defs>
-                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#8884d8" stopOpacity={0} />
+                  <linearGradient id="colorCompanies" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorCandidates" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                <XAxis dataKey="name" tick={false} axisLine={false} />
-                <YAxis hide />
+                <XAxis dataKey="month" />
+                <YAxis />
                 <Tooltip />
+                <Legend />
                 <Area
                   type="monotone"
-                  dataKey="value"
-                  stroke="#8884d8"
-                  fillOpacity={1}
-                  fill="url(#colorValue)"
+                  dataKey="companies"
+                  stackId="1"
+                  stroke="#3B82F6"
+                  fill="url(#colorCompanies)"
+                  name="Companies"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="candidates"
+                  stackId="1"
+                  stroke="#10B981"
+                  fill="url(#colorCandidates)"
+                  name="Candidates"
                 />
               </AreaChart>
             </ResponsiveContainer>
-       
           </div>
 
-          {/* graf section end */}
-
-          <div className="bg-white p-6 rounded-lg shadow-md lg:w-1/4 overflow-y-auto h-98 ">
-            <h3 className="text-lg font-bold fixed relative  top-0 font-serif">
-              User Transfers
-            </h3>
-            <div className="mt-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Alex Manda"
-                    className="rounded-full w-10 h-10"
-                    height="100"
-                    src="https://storage.googleapis.com/a1aa/image/i_NTVKpdNl_HqoGmBr8umfaPfBSDuqj6DXondtl2eDQ.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3">
-                    <p>From Alex Manda</p>
-                    <span className="text-gray-500 text-sm font-serif">Today, 16:36</span>
-                  </div>
-                </div>
-                <span className="text-green-500 font-serif">+$50</span>
-              </div>
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Laura Santos"
-                    className="rounded-full w-10 h-10"
-                    height="100"
-                    src="https://storage.googleapis.com/a1aa/image/AnnQ7YANRz1mACzCLf3D5cFZRtyVwfGsJFvdJrDSSOQ.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3">
-                    <p>To Laura Santos</p>
-                    <span className="text-gray-500 text-sm font-serif">Today, 08:49</span>
-                  </div>
-                </div>
-                <span className="text-red-500">-$27</span>
-              </div>
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Laura Santos"
-                    className="rounded-full w-10 h-10"
-                    height="100"
-                    src="https://storage.googleapis.com/a1aa/image/AnnQ7YANRz1mACzCLf3D5cFZRtyVwfGsJFvdJrDSSOQ.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3">
-                    <p>To Laura Santos</p>
-                    <span className="text-gray-500 text-sm font-serif">Today, 08:49</span>
-                  </div>
-                </div>
-                <span className="text-red-500 font-serif">-$27</span>
-              </div>
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Laura Santos"
-                    className="rounded-full w-10 h-10"
-                    height="100"
-                    src="https://storage.googleapis.com/a1aa/image/AnnQ7YANRz1mACzCLf3D5cFZRtyVwfGsJFvdJrDSSOQ.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3">
-                    <p>To Laura Santos</p>
-                    <span className="text-gray-500 text-sm font-serif">Today, 08:49</span>
-                  </div>
-                </div>
-                <span className="text-red-500 font-serif">-$27</span>
-              </div>
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Laura Santos"
-                    className="rounded-full w-10 h-10"
-                    height="100"
-                    src="https://storage.googleapis.com/a1aa/image/AnnQ7YANRz1mACzCLf3D5cFZRtyVwfGsJFvdJrDSSOQ.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3">
-                    <p>To Laura Santos</p>
-                    <span className="text-gray-500 text-sm font-serif" >Today, 08:49</span>
-                  </div>
-                </div>
-                <span className="text-red-500 font-serif">-$27</span>
-              </div>
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Laura Santos"
-                    className="rounded-full w-10 h-10"
-                    height="100" 
-                    src="https://storage.googleapis.com/a1aa/image/AnnQ7YANRz1mACzCLf3D5cFZRtyVwfGsJFvdJrDSSOQ.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3">
-                    <p>To Laura Santos</p>
-                    <span className="text-gray-500 text-sm font-serif">Today, 08:49</span>
-                  </div>
-                </div>
-                <span className="text-red-500 font-serif">-$27</span>
-              </div>
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Laura Santos"
-                    className="rounded-full w-10 h-10"
-                    height="100"
-                    src="https://storage.googleapis.com/a1aa/image/AnnQ7YANRz1mACzCLf3D5cFZRtyVwfGsJFvdJrDSSOQ.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3">
-                    <p>To Laura Santos</p>
-                    <span className="text-gray-500 text-sm font-serif">Today, 08:49</span>
-                  </div>
-                </div>
-                <span className="text-red-500 font-serif">-$27</span>
-              </div>
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Laura Santos"
-                    className="rounded-full w-10 h-10"
-                    height="100"
-                    src="https://storage.googleapis.com/a1aa/image/AnnQ7YANRz1mACzCLf3D5cFZRtyVwfGsJFvdJrDSSOQ.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3">
-                    <p>To Laura Santos</p>
-                    <span className="text-gray-500 text-sm font-serif">Today, 08:49</span>
-                  </div>
-                </div>
-                <span className="text-red-500 font-serif">-$27</span>
-              </div>
-
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Laura Santos"
-                    className="rounded-full w-10 h-10"
-                    height="100"
-                    src="https://storage.googleapis.com/a1aa/image/AnnQ7YANRz1mACzCLf3D5cFZRtyVwfGsJFvdJrDSSOQ.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3">
-                    <p>To Laura Santos</p>
-                    <span className="text-gray-500 text-sm font-srif">Today, 08:49</span>
-                  </div>
-                </div>
-                <span className="text-red-500 font-serif">-$27</span>
-              </div>
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Laura Santos"
-                    className="rounded-full w-10 h-10"
-                    height="100"
-                    src="https://storage.googleapis.com/a1aa/image/AnnQ7YANRz1mACzCLf3D5cFZRtyVwfGsJFvdJrDSSOQ.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3 font-serif">
-                    <p>To Laura Santos</p>
-                    <span className="text-gray-500 text-sm font-serif">Today, 08:49</span>
-                  </div>
-                </div>
-                <span className="text-red-500 font-serif">-$27</span>
-              </div>
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Laura Santos"
-                    className="rounded-full w-10 h-10"
-                    height="100"
-                    src="https://storage.googleapis.com/a1aa/image/AnnQ7YANRz1mACzCLf3D5cFZRtyVwfGsJFvdJrDSSOQ.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3">
-                    <p>To Laura Santos</p>
-                    <span className="text-gray-500 text-sm font-serif">Today, 08:49</span>
-                  </div>
-                </div>
-                <span className="text-red-500 font-serif">-$27</span>
-              </div>
-
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Laura Santos"
-                    className="rounded-full w-10 h-10"
-                    height="100"
-                    src="https://storage.googleapis.com/a1aa/image/AnnQ7YANRz1mACzCLf3D5cFZRtyVwfGsJFvdJrDSSOQ.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3">
-                    <p>To Laura Santos</p>
-                    <span className="text-gray-500 text-sm font-serif">Today, 08:49</span>
-                  </div>
-                </div>
-                <span className="text-red-500">-$27</span>
-              </div>
-
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Laura Santos"
-                    className="rounded-full w-10 h-10"
-                    height="100"
-                    src="https://storage.googleapis.com/a1aa/image/AnnQ7YANRz1mACzCLf3D5cFZRtyVwfGsJFvdJrDSSOQ.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3">
-                    <p>To Laura Santos</p>
-                    <span className="text-gray-500 text-sm font-serif">Today, 08:49</span>
-                  </div>
-                </div>
-                <span className="text-red-500 font-serif">-$27</span>
-              </div>
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Laura Santos"
-                    className="rounded-full w-10 h-10"
-                    height="100"
-                    src="https://storage.googleapis.com/a1aa/image/AnnQ7YANRz1mACzCLf3D5cFZRtyVwfGsJFvdJrDSSOQ.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3">
-                    <p>To Laura Santos</p>
-                    <span className="text-gray-500 text-sm font-serif">Today, 08:49</span>
-                  </div>
-                </div>
-                <span className="text-red-500 font-serif">-$27</span>
-              </div>
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center">
-                  <img
-                    alt="Profile picture of Jadon S."
-                    className="rounded-full w-10 h-10"
-                    height="100"
-                    src="https://storage.googleapis.com/a1aa/image/6u0IS57KQItJC50-azCw1-dvsSxoR7mk9_UxvfSF7fM.jpg"
-                    width="100"
-                  />
-                  <div className="ml-3">
-                    <p>From Jadon S.</p>
-                    <span className="text-gray-500 text-sm font-serif">
-                      Yesterday, 14:36
-                    </span>
-                  </div>
-                </div>
-                <span className="text-green-500 font-serif">+$157</span>
-              </div>
-              <a className="text-blue-500 mt-4 block text-right" href="#">
-                View all
-              </a>
-            </div>
+          {/* Task Status Pie Chart */}
+          <div className="bg-white p-6 rounded-xl shadow-lg">
+            <h3 className="text-lg font-semibold mb-4 font-serif text-gray-800">Task Status Distribution</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={taskStatusData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {taskStatusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
-        <div class="flex flex-col lg:flex-row gap-4 mt-5">
-          {/* <!-- Left Section --> */}
-          <div class="bg-white rounded-lg shadow-lg p-6 lg:w-1/3 mb-4 lg:mb-0">
-            <div class="bg-purple-500 text-white rounded-lg p-4 mb-6">
-              <div class="flex justify-between items-center">
-                <div>
-                  <p class="text-sm font-serif font-serif">Credit Balance</p>
-                  <p class="text-3xl font-bold font-serif">$25,215</p>
-                </div>
-                <i class="fas fa-exchange-alt text-2xl"></i>
-              </div>
-            </div>
-            <div>
-              <h2 class="text-lg font-semibold mb-4 font-serif">Recent</h2>
-              <div class="flex items-center mb-4">
-                <img
-                  alt="Icon of a building"
-                  class="w-10 h-10 rounded-full mr-4"
-                  height="100"
-                  src="https://storage.googleapis.com/a1aa/image/kGPJU_NwVDanWaBTj_EF3YuuhsUtMKYqBwRiRRyv8eE.jpg"
-                  width="100"
+        {/* Additional Charts Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Interview Status Bar Chart */}
+          <div className="bg-white p-6 rounded-xl shadow-lg">
+            <h3 className="text-lg font-semibold mb-4 font-serif text-gray-800">Interview Status</h3>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={interviewStatusData}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="value" fill="#8884d8" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Performance Trend Line Chart */}
+          <div className="bg-white p-6 rounded-xl shadow-lg">
+            <h3 className="text-lg font-semibold mb-4 font-serif text-gray-800">Performance Trend</h3>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={monthlyData}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="interviews"
+                  stroke="#8B5CF6"
+                  strokeWidth={3}
+                  name="Interviews"
                 />
-                <div class="flex-1">
-                  <p class="text-sm font-semibold font-serif">Bill &amp; Taxes</p>
-                  <p class="text-xs text-gray-500 font-serif">Today, 16:36</p>
-                </div>
-                <p class="text-red-500 font-semibold font-serif">-$154.50</p>
-              </div>
-              <div class="flex items-center mb-4">
-                <img
-                  alt="Icon of a car"
-                  class="w-10 h-10 rounded-full mr-4"
-                  height="100"
-                  src="https://storage.googleapis.com/a1aa/image/O31pXsf8ns32vKEK5QjmMuoynSEBXIS_kwSlFmlDfXQ.jpg"
-                  width="100"
+                <Line
+                  type="monotone"
+                  dataKey="tasks"
+                  stroke="#F59E0B"
+                  strokeWidth={3}
+                  name="Tasks"
                 />
-                <div class="flex-1">
-                  <p class="text-sm font-semibold font-serif">Car Energy</p>
-                  <p class="text-xs text-gray-500 font-serif">23 Jun, 13:06</p>
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Recent Activities and Quick Stats */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Recent Activities */}
+          <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
+            <h3 className="text-lg font-semibold mb-4 font-serif text-gray-800">Recent Activities</h3>
+            <div className="space-y-4 max-h-96 overflow-y-auto custom-scrollbar">
+              {recentActivities.length > 0 ? (
+                recentActivities.map((activity, index) => (
+                  <div key={index} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+                    <div className={`p-2 rounded-full ${activity.color} bg-opacity-10`}>
+                      <activity.icon className="text-lg" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-800">{activity.title}</p>
+                      <p className="text-sm text-gray-500">{activity.details}</p>
+                      <p className="text-xs text-gray-400">
+                        {activity.date.toLocaleDateString()} at {activity.date.toLocaleTimeString()}
+                      </p>
+                    </div>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      activity.status === 'Completed' ? 'bg-green-100 text-green-800' :
+                      activity.status === 'Scheduled' ? 'bg-blue-100 text-blue-800' :
+                      activity.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {activity.status}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <FaBriefcase className="text-4xl text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">No recent activities</p>
+                  <p className="text-sm text-gray-400">Start by adding companies, candidates, or tasks</p>
                 </div>
-                <p class="text-red-500 font-semibold font-serif">-$40.50</p>
-              </div>
-              <div class="flex items-center">
-                <img
-                  alt="Icon of a book"
-                  class="w-10 h-10 rounded-full mr-4"
-                  height="100"
-                  src="https://storage.googleapis.com/a1aa/image/1REDMg0QAjBoBJVRbf6Rl-l13kghDxC_MzQYIwV7Adg.jpg"
-                  width="100"
-                />
-                <div class="flex-1">
-                  <p class="text-sm font-semibold font-serif">Design Course</p>
-                  <p class="text-xs text-gray-500 font-serif">21 Jun, 19:04</p>
-                </div>
-                <p class="text-red-500 font-semibold font-serif">-$70.00</p>
-              </div>
+              )}
             </div>
           </div>
-          {/* <!-- Right Section --> */}
-          <div class="bg-white rounded-lg shadow-lg p-6 lg:w-2/3 flex flex-col lg:flex-row items-center">
-            <div class="lg:w-1/2 mb-4 lg:mb-0 lg:mr-4">
-              <h2 class="text-2xl font-bold mb-2 font-serif">Try Venus for free now!</h2>
-              <p class="text-gray-600 mb-4 font-serif">
-                Enter in this creative world. Venus is the best product for your
-                business.
-              </p>
-              <div class="flex items-center font-serif">
-                <button class="bg-purple-600 text-white px-4 py-2 rounded-lg mr-4">
-                  Try for free
-                </button>
-                <button class="text-gray-600 font-serif">Skip</button>
+
+          {/* Quick Stats */}
+          <div className="bg-white p-6 rounded-xl shadow-lg">
+            <h3 className="text-lg font-semibold mb-4 font-serif text-gray-800">Quick Stats</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <FaUserTie className="text-blue-500 text-xl" />
+                  <span className="font-medium">Total Companies</span>
+                </div>
+                <span className="text-2xl font-bold text-blue-600">{dashboardData.companies}</span>
               </div>
-            </div>
-            <div class="lg:w-1/2">
-              <img
-                alt="Various mobile screens showcasing the Venus app"
-                class="rounded-lg"
-                height="400"
-                src="https://storage.googleapis.com/a1aa/image/0Gg-TnBnQMKRVrUF4wqliIUMBcgnosRScgOFhcCRBqc.jpg"
-                width="400"
-              />
+
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <FaCheckCircle className="text-green-500 text-xl" />
+                  <span className="font-medium">Completed Tasks</span>
+                </div>
+                <span className="text-2xl font-bold text-green-600">{getCompletedTasks()}</span>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <FaClock className="text-purple-500 text-xl" />
+                  <span className="font-medium">Scheduled Interviews</span>
+                </div>
+                <span className="text-2xl font-bold text-purple-600">{getScheduledInterviews()}</span>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <FaExclamationTriangle className="text-yellow-500 text-xl" />
+                  <span className="font-medium">Pending Tasks</span>
+                </div>
+                <span className="text-2xl font-bold text-yellow-600">{getPendingTasks()}</span>
+              </div>
             </div>
           </div>
         </div>

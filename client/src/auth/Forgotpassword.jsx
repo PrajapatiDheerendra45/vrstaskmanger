@@ -1,20 +1,19 @@
 import React, { useState } from "react";
 import { FaEnvelope } from "react-icons/fa";
-import { useNavigate } from "react-router-dom"; // For navigation
-import axios from "axios"; // For API request
-import logo from "../assets/images/imslogo.png";
-import forgate from "../assets/images/forgate.png";
-import Footer from "../Component/Footer";
-import Header from "../Component/Header";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import logo from "../assets/logo.png";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import Loader from "../Component/Loader";
+import Loader from "../components/Loader";
+
 const Forgotpassword = () => {
-  const [email, setEmail] = useState(""); // State for email input
-  const [loading, setLoading] = useState(false); // State for button loading
-  const [error, setError] = useState(""); // State for error messages
-  const navigate = useNavigate(); // Navigation function
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
   const [navigating, setNavigating] = useState(false);
+
   const handleForgotPassword = async () => {
     if (!email) {
       setError("Please enter your email!");
@@ -25,21 +24,16 @@ const Forgotpassword = () => {
     setError("");
 
     try {
-      const response = await axios.post(
-        "https://hola9.in/auth/forgetpassword/",
-        {
-          email: email,
-        }
-      );
+      const response = await axios.post("/api/v1/users/forgot-password/", {
+        email: email,
+      });
     
       if (response.data) {
         setNavigating(true);
-        toast.success(response.data.message)
+        toast.success("Password reset email sent successfully! Check your inbox.");
         setTimeout(() => {
-          navigate("/reset");
+          navigate("/login");
         }, 3000);
-        
-        // Redirect if API is successful
       } else {
         toast.error(response.data.message || "Something went wrong!");
       }
@@ -54,12 +48,11 @@ const Forgotpassword = () => {
 
   return (
     <>
-      <Header />
       <div className="flex h-screen bg-gradient-to-r from-purple-700 to-red-500">
         {/* Left Section with Background Image */}
         <div className="w-1/2 relative hidden lg:block">
           <img
-            src={forgate}
+            src="https://i.pinimg.com/736x/49/b9/64/49b96466ab917ca807451e05456233f2.jpg"
             alt="Background"
             className="w-full h-full object-cover shadow opacity-80 hover:blur-sm blur-none transition duration-500"
           />
@@ -73,45 +66,49 @@ const Forgotpassword = () => {
               <img src={logo} alt="Logo" className="w-58 h-24" />
             </div>
 
-            {/* Title */}
-
             {navigating ? (
-              <Loader className=" relative"/>
-            ) : (
-            <div>
-              <h2 className="text-2xl mt-5 mb-5 font-semibold text-center">
-                Forgot Password
-              </h2>
-
-              {/* Email Input */}
-              <div className="relative mb-4">
-                <FaEnvelope className="absolute left-3 top-3 text-gray-400" />
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full p-3 pl-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
+              <div className="text-center">
+                <Loader className="relative" />
+                <p className="mt-4 text-green-600">Email sent! Redirecting to login...</p>
               </div>
+            ) : (
+              <div>
+                <h2 className="text-2xl mt-5 mb-5 font-semibold text-center">
+                  Forgot Password
+                </h2>
+                <p className="text-gray-600 text-center mb-6">
+                  Enter your email address and we'll send you a link to reset your password.
+                </p>
 
-              {/* Error Message */}
-              {/* {error && <p className="text-red-500 text-center mb-2">{error}</p>} */}
+                {/* Email Input */}
+                <div className="relative mb-4">
+                  <FaEnvelope className="absolute left-3 top-3 text-gray-400" />
+                  <input
+                    type="email"
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full p-3 pl-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
 
-              {/* Submit Button */}
-              <button
-                onClick={handleForgotPassword}
-                className={`w-full text-white p-3 rounded-md text-lg transition ${
-                  loading
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-red-500 hover:bg-red-600"
-                }`}
-                disabled={loading}
-              >
-                {loading ? "Processing..." : "Forgot Password"}
-              </button>
-            </div>
+                {/* Error Message */}
+                {error && <p className="text-red-500 text-center mb-2">{error}</p>}
+
+                {/* Submit Button */}
+                <button
+                  onClick={handleForgotPassword}
+                  className={`w-full text-white p-3 rounded-md text-lg transition ${
+                    loading
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-red-500 hover:bg-red-600"
+                  }`}
+                  disabled={loading}
+                >
+                  {loading ? "Processing..." : "Send Reset Link"}
+                </button>
+              </div>
             )}
 
             {/* Redirect to Login */}
@@ -125,7 +122,6 @@ const Forgotpassword = () => {
         </div>
         <ToastContainer />
       </div>
-      <Footer />
     </>
   );
 };

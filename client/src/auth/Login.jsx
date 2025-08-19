@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { User } from "lucide-react";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { FaEye, FaEyeSlash, FaGoogle } from "react-icons/fa";
 import logo from "../assets/logo.png";
 import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -13,6 +13,7 @@ const Login = () => {
   const email = useRef();
   const password = useRef();
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const [auth, setAuth] = useAuth();
@@ -20,12 +21,9 @@ const Login = () => {
   const searchParams = new URLSearchParams(location.search);
   const role = searchParams.get("role") || "0"; // Default to User role
 
-
-   useEffect(() => {
+  useEffect(() => {
     const storedAuth = localStorage.getItem("auth");
     const auth = storedAuth ? JSON.parse(storedAuth) : null;
-
-    // console.log("🔁 Redirect check from localStorage", auth);
 
     if (auth?.user?.role === 1) {
       navigate("/admin");
@@ -34,75 +32,132 @@ const Login = () => {
     }
   }, [navigate]);
 
-
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
 
-  try {
-    const response = await axios.post("/api/v1/users/login/", {
-      email: email.current.value,
-      password: password.current.value,
-      role: Number(role),
-    });
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
 
-    console.log("response",response)
-    if (response.status === 200) {
-      const token = response.data.token;
-      const user = response.data.user;
+    try {
+      const response = await axios.post("/api/v1/users/login/", {
+        email: email.current.value,
+        password: password.current.value,
+        role: Number(role),
+      });
 
-      const newAuth = {
-        user,
-        AccessToken: token,
-        RefreshToken: "", // if not available, keep empty
+      console.log("response", response);
+      if (response.status === 200) {
+        const token = response.data.token;
+        const user = response.data.user;
+
+        const newAuth = {
+          user,
+          AccessToken: token,
+          RefreshToken: "",
+        };
+
+        setAuth(newAuth);
+        console.log("✅ Auth set successfully:", newAuth);
+
+        localStorage.setItem(
+          "auth",
+          JSON.stringify({
+            user,
+            access: token,
+            refresh: "",
+          })
+        );
+
+        toast.success(response.data.message);
+
+        setTimeout(() => {
+          navigate(user.role === 1 ? "/admin" : "/user");
+        }, 1000);
+      } else {
+        toast.error(
+          "Login failed: " + (response.data.message || "Invalid credentials")
+        );
+      }
+    } catch (error) {
+      toast.error(
+        "Login failed: " +
+          (error.response?.data.message || "Invalid credentials")
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
+    try {
+      // Initialize Google OAuth
+      if (window.google) {
+        window.google.accounts.id.initialize({
+          client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID || "your-google-client-id",
+          callback: handleGoogleCallback,
+        });
+        window.google.accounts.id.prompt();
+      } else {
+        toast.error("Google OAuth not available");
+      }
+    } catch (error) {
+      toast.error("Google login failed");
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleCallback = async (response) => {
+    try {
+      const { credential } = response;
+      const decoded = JSON.parse(atob(credential.split('.')[1]));
+      
+      const googleData = {
+        email: decoded.email,
+        name: decoded.name,
+        googleId: decoded.sub,
+        picture: decoded.picture,
       };
 
-      // Update context
-      setAuth(newAuth);
+      const apiResponse = await axios.post("/api/v1/users/google-login/", googleData);
+      
+      if (apiResponse.status === 200) {
+        const token = apiResponse.data.token;
+        const user = apiResponse.data.user;
 
-      // Log correct updated values
-      console.log("✅ Auth set successfully:", newAuth);
-
-      // Store to sessionStorage
-      localStorage.setItem(
-        "auth",
-        JSON.stringify({
+        const newAuth = {
           user,
-          access: token,
-          refresh: "",
-        })
-      );
+          AccessToken: token,
+          RefreshToken: "",
+        };
 
-      // Show toast
-      toast.success(response.data.message);
+        setAuth(newAuth);
+        localStorage.setItem(
+          "auth",
+          JSON.stringify({
+            user,
+            access: token,
+            refresh: "",
+          })
+        );
 
-      // Navigate based on role
-      setTimeout(() => {
-        navigate(user.role === 1 ? "/admin" : "/user");
-      }, 1000);
-    } else {
-      toast.error(
-        "Login failed: " + (response.data.message || "Invalid credentials")
-      );
+        toast.success("Google login successful!");
+        setTimeout(() => {
+          navigate(user.role === 1 ? "/admin" : "/user");
+        }, 1000);
+      }
+    } catch (error) {
+      toast.error("Google login failed: " + (error.response?.data.message || "Authentication error"));
     }
-  } catch (error) {
-    toast.error(
-      "Login failed: " +
-        (error.response?.data.message || "Invalid credentials")
-    );
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   return (
     <>
       <div className="flex flex-col md:flex-row items-center justify-center min-h-screen bg-gray-100 p-4">
-        {/* Left Section - Image */}                                            
+        {/* Left Section - Image */}
         <div className="hidden md:flex md:w-1/2 justify-center">
           <a href="/">
             <img
@@ -189,6 +244,26 @@ const handleSubmit = async (e) => {
               </button>
             </form>
 
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Or continue with</span>
+              </div>
+            </div>
+
+            {/* Google Login Button */}
+            <button
+              onClick={handleGoogleLogin}
+              disabled={googleLoading}
+              className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition"
+            >
+              <FaGoogle className="text-red-500" />
+              {googleLoading ? "Connecting..." : "Continue with Google"}
+            </button>
+
             <p className="mt-4 text-center text-sm">
               <span className="text-gray-600">Don't have an account?</span>
               <Link
@@ -199,15 +274,14 @@ const handleSubmit = async (e) => {
               </Link>
             </p>
 
-          <a href="/">
-          <button
+            <a href="/">
+              <button
                 type="submit"
                 className="w-full bg-green-500 text-white py-2 rounded-lg hover:bg-blue-600 transition"
-                
               >
                 Go To Home
               </button>
-          </a>
+            </a>
           </div>
         </div>
         <ToastContainer />

@@ -15,6 +15,7 @@ const InterviewScheduler = () => {
 
   const [candidates, setCandidates] = useState([]);
   const [hrList, setHrList] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
   const [searchCandidate, setSearchCandidate] = useState("");
 
   const [companyList, setCompanyList] = useState([]);
@@ -25,8 +26,17 @@ const InterviewScheduler = () => {
         const candidateRes = await axios.get("/api/v1/candidate/get");
         setCandidates(candidateRes.data);
 
-        const hrRes = await axios.get("/api/v1/users/getusers");
-        setHrList(hrRes.data.users || []);
+        const user = JSON.parse(localStorage.getItem("auth"));
+        setCurrentUser(user?.user);
+
+        // Get HR list (only show current user if they are HR)
+        if (user?.user?.role === 'hr' || user?.user?.role === 'admin') {
+          const hrRes = await axios.get("/api/v1/users/getusers");
+          setHrList(hrRes?.data?.users || []);
+        } else {
+          // For regular users, only show themselves
+          setHrList([user?.user]);
+        }
 
         const companyRes = await axios.get("/api/v1/company/get");
         const collaboratedCompanies = companyRes.data.filter(
@@ -48,8 +58,17 @@ const InterviewScheduler = () => {
         const candidateRes = await axios.get("/api/v1/candidate/get");
         setCandidates(candidateRes.data);
 
-        const hrRes = await axios.get("/api/v1/users/getusers");
-        setHrList(hrRes.data.users || []); // assuming API returns { users: [] }
+        const user = JSON.parse(localStorage.getItem("auth"));
+        setCurrentUser(user?.user);
+
+        // Get HR list (only show current user if they are HR)
+        if (user?.user?.role === 'hr' || user?.user?.role === 'admin') {
+          const hrRes = await axios.get("/api/v1/users/getusers");
+          setHrList(hrRes?.data?.users || []);
+        } else {
+          // For regular users, only show themselves
+          setHrList([user?.user]);
+        }
       } catch (err) {
         console.error("Fetch error:", err);
       }
@@ -57,6 +76,10 @@ const InterviewScheduler = () => {
 
     fetchData();
   }, []);
+
+
+
+  
 
   const handleChange = (e) => {
     const { name, value } = e.target;

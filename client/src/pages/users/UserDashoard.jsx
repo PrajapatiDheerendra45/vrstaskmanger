@@ -312,7 +312,7 @@ const UserDashoard = () => {
                   <div className="text-center">
                     <p className="text-sm text-gray-600 mb-3">Click to view details</p>
                     <button 
-                      onClick={() => navigate(`/${item.route}`)}
+                      onClick={() => navigate(`/user${item.link}`)}
                       className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
                     >
                       View All

@@ -102,6 +102,13 @@ export const loginUser = async (req, res) => {
       return res.status(400).json({ message: "Invalid email or password" });
     }
 
+    // Check if user is active (for staff members)
+    if (user.role === 0 && user.status === 'inactive') {
+      return res.status(403).json({ 
+        message: "Access denied. Your account has been deactivated. Please contact the administrator." 
+      });
+    }
+
     // Generate JWT token
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "30d",
@@ -519,6 +526,13 @@ export const googleLogin = async (req, res) => {
       user.googleId = googleId;
       if (picture) user.profilePicture = picture;
       await user.save();
+    }
+
+    // Check if user is active (for staff members)
+    if (user.role === 0 && user.status === 'inactive') {
+      return res.status(403).json({ 
+        message: "Access denied. Your account has been deactivated. Please contact the administrator." 
+      });
     }
 
     // Generate JWT token

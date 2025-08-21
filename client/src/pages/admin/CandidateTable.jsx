@@ -285,7 +285,7 @@ export default function CandidateTable() {
                   <td className="px-4 py-3">
                     {candidate.resume ? (
                       <a
-                        href={`/${candidate.resume.replace(/^uploads\//, '')}`}
+                        href={`/${candidate.resume.split('uploads/').pop()}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-600 underline"

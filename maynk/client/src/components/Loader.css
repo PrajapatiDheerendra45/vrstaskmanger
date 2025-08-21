@@ -1,0 +1,144 @@
+/* Reset styles */
+.maindiv {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #fbfbfc;
+    font-family: "Arial", sans-serif;
+  }
+  
+  /* Loader Container */
+  .loader-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: radial-gradient(circle at center, #001233 0%, #000813 100%);
+    z-index: 9999;
+  }
+  
+  /* Loader Wrapper */
+  .loader-wrapper {
+    position: relative;
+    width: 300px;
+    height: 300px;
+  }
+  
+  /* Circles */
+  .circle {
+    fill: none;
+    stroke-width: 2;
+    transform-origin: center;
+  }
+  
+  .outer {
+    stroke: #00fff2;
+    stroke-dasharray: 628;
+    stroke-dashoffset: 628;
+    animation: dash 3s ease-in-out infinite;
+   
+  }
+  
+  .middle {
+    stroke: #0066ff;
+    stroke-dasharray: 471;
+    stroke-dashoffset: 471;
+    animation: dashReverse 3s ease-in-out infinite;
+    opacity: 0.8;
+  }
+  
+  .inner {
+    stroke: #00ff88;
+    stroke-dasharray: 314;
+    stroke-dashoffset: 314;
+    animation: dash 3s ease-in-out infinite;
+    opacity: 0.6;
+  }
+  
+  /* Scanner Line */
+  .scanner {
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(to right, transparent, #00fff2, transparent);
+    animation: scan 3s ease-in-out infinite;
+  }
+  
+  /* Corner Dots */
+  .dots {
+    fill: #00fff2;
+    animation: pulse 2s ease-in-out infinite;
+   
+  }
+  
+  /* Loading Text */
+  .progress-text {
+    position: absolute;
+    bottom: -60px;
+    width: 100%;
+    text-align: center;
+    color: #00fff2;
+    font-size: 18px;
+    letter-spacing: 2px;
+
+    animation: flicker 4s infinite;
+  }
+  
+  /* Particles Container */
+  .particles {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    opacity: 0.5;
+  }
+  
+  /* Individual Particle */
+  .particle {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: #00fff2;
+    border-radius: 50%;
+    animation: float 3s infinite;
+  }
+  
+  /* Animations */
+  @keyframes dash {
+    0% { stroke-dashoffset: 628; }
+    50% { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: -628; }
+  }
+  
+  @keyframes dashReverse {
+    0% { stroke-dashoffset: -471; }
+    50% { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: 471; }
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 0.2; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.2); }
+  }
+  
+  @keyframes scan {
+    0%, 100% { top: 0%; opacity: 0; }
+    25%, 75% { opacity: 1; }
+    50% { top: 100%; }
+  }
+  
+  @keyframes flicker {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+  }
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
+    50% { transform: translateY(-100px) translateX(20px); opacity: 1; }
+  }
+  

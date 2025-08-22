@@ -6,9 +6,31 @@ export const createCandidate = async (req, res) => {
     const { fullName, email, phone, experience, comments, createdBy, position, location } = req.body;
     const resumePath = req.file ? req.file.path : '';
 
+    // Check for duplicate candidate by email or full name
+    const existingCandidate = await Candidate.findOne({
+      $or: [
+        { email: email.toLowerCase() },
+        { fullName: { $regex: new RegExp(`^${fullName}$`, 'i') } }
+      ]
+    });
+
+    if (existingCandidate) {
+      if (existingCandidate.email.toLowerCase() === email.toLowerCase()) {
+        return res.status(400).json({ 
+          status: false, 
+          message: "A candidate with this email already exists!" 
+        });
+      } else {
+        return res.status(400).json({ 
+          status: false, 
+          message: "A candidate with this name already exists!" 
+        });
+      }
+    }
+
     const candidate = await Candidate.create({
       fullName,
-      email,
+      email: email.toLowerCase(),
       position,
       phone,
       experience,

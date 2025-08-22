@@ -3,12 +3,44 @@ import Company from "../models/companyModel.js";
 // ➤ CREATE Company
 export const createCompanyController = async (req, res) => {
   try {
+    const { companyName, email, phone, industry, address, city, state, zip, hrname, createdBy } = req.body;
+
+    // Check for duplicate company by email or company name
+    const existingCompany = await Company.findOne({
+      $or: [
+        { email: email.toLowerCase() },
+        { companyName: { $regex: new RegExp(`^${companyName}$`, 'i') } }
+      ]
+    });
+
+    if (existingCompany) {
+      if (existingCompany.email.toLowerCase() === email.toLowerCase()) {
+        return res.status(400).json({ 
+          status: false, 
+          message: "A company with this email already exists!" 
+        });
+      } else {
+        return res.status(400).json({ 
+          status: false, 
+          message: "A company with this name already exists!" 
+        });
+      }
+    }
+
     const newCompany = new Company({
-      ...req.body,
-      createdBy: req.body.createdBy || "64xxxx..." // pass _id here in real flow
+      companyName,
+      email: email.toLowerCase(),
+      phone,
+      industry,
+      address,
+      city,
+      state,
+      zip,
+      hrname,
+      createdBy: createdBy || "64xxxx..." // pass _id here in real flow
     });
     const savedCompany = await newCompany.save();
-    res.status(201).json({status:true,message:"Compnay registerd Successfully...!", data:savedCompany});
+    res.status(201).json({status:true,message:"Company registered Successfully...!", data:savedCompany});
   } catch (err) {
     res.status(400).json({ message: err.message });
   }

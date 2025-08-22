@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const companySchema = new mongoose.Schema(
   {
     companyName: { type: String, required: true },
-    email: { type: String, required: true },
+    email: { type: String, required: true, lowercase: true },
     phone: { type: String },
     industry: { type: String },
     address: { type: String },
@@ -33,6 +33,10 @@ const companySchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Add unique indexes to prevent duplicates
+companySchema.index({ email: 1 }, { unique: true });
+companySchema.index({ companyName: 1 }, { unique: true });
 
 const Company = mongoose.model("Company", companySchema);
 export default Company;

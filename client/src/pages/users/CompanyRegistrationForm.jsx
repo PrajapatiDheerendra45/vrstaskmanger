@@ -66,13 +66,19 @@ const CompanyRegistrationForm = () => {
           state: "",
           zip: "",
         });
+      } else {
+        alert(res.data.message || "Something went wrong!");
       }
     } catch (error) {
       console.error(
         "Error registering company:",
         error.response?.data || error.message
       );
-      alert("Something went wrong while registering the company.");
+      if (error.response?.data?.message) {
+        alert(error.response.data.message);
+      } else {
+        alert("Something went wrong while registering the company.");
+      }
     }
   };
 

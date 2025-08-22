@@ -82,11 +82,15 @@ const CandidateRegistrationForm = () => {
           resume: null,
         });
       } else {
-        alert("Something went wrong!");
+        alert(res.data.message || "Something went wrong!");
       }
     } catch (error) {
       console.error(error);
-      alert("Error while submitting candidate!");
+      if (error.response?.data?.message) {
+        alert(error.response.data.message);
+      } else {
+        alert("Error while submitting candidate!");
+      }
     }
   };
 

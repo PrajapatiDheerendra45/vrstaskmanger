@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const candidateSchema = new mongoose.Schema(
   {
     fullName: { type: String, required: true },
-    email: { type: String, required: true },
+    email: { type: String, required: true, lowercase: true },
     phone: { type: String, required: true },
     position: { type: String, required: true },
     experience: { type: String },
@@ -18,5 +18,9 @@ const candidateSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Add unique indexes to prevent duplicates
+candidateSchema.index({ email: 1 }, { unique: true });
+candidateSchema.index({ fullName: 1 }, { unique: true });
 
 export default mongoose.model("Candidate", candidateSchema);
